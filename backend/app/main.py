@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import indicators, auth
+from app.api.v1.endpoints import indicators, auth, enrichment
 
 app = FastAPI(
     title="ThreatLens Threat Intelligence Platform API",
@@ -18,6 +18,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(indicators.router, prefix="/api/v1/indicators", tags=["Indicators"])
+app.include_router(enrichment.router, prefix="/api/v1/enrichment", tags=["Enrichment"])
 
 @app.get("/")
 def read_root():
