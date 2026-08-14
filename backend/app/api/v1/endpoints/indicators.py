@@ -6,7 +6,12 @@ import uuid
 
 from app.db.session import get_db
 from app.models.indicator import Indicator, IndicatorType, ThreatSeverity, IndicatorStatus
-from app.services.feed_service import fetch_urlhaus_recent_urls
+from app.services.feed_service import (
+    fetch_urlhaus_recent_urls,
+    fetch_threatfox_recent_iocs,
+    fetch_feodo_tracker_ips,
+    fetch_malwarebazaar_recent_hashes
+)
 from app.services.audit_service import log_action
 from app.services.scoring_service import calculate_ioc_severity
 from app.services.search_service import index_indicator
@@ -158,17 +163,29 @@ def update_ioc_status(
     return {"message": "Status updated successfully", "indicator": ioc}
 
 @router.post("/fetch-feed")
-async def trigger_feed_ingestion(request: Request, db: Session = Depends(get_db)):
-    result = await fetch_urlhaus_recent_urls(db)
+async def trigger_feed_ingestion(source: Optional[str] = "all", request: Request = None, db: Session = Depends(get_db)):
+    """
+    Ingest live threat intelligence feeds (URLhaus, ThreatFox, Feodo Tracker, MalwareBazaar).
+    """
+    results = {}
     
+    if source in ["all", "urlhaus"]:
+        results["urlhaus"] = await fetch_urlhaus_recent_urls(db)
+    if source in ["all", "threatfox"]:
+        results["threatfox"] = await fetch_threatfox_recent_iocs(db)
+    if source in ["all", "feodo"]:
+        results["feodo_tracker"] = await fetch_feodo_tracker_ips(db)
+    if source in ["all", "malwarebazaar"]:
+        results["malwarebazaar"] = await fetch_malwarebazaar_recent_hashes(db)
+
     try:
         log_action(
             db, 
-            action="FEED_INGESTION_TRIGGERED", 
-            details=result if isinstance(result, dict) else {"status": "completed"}, 
+            action="MULTI_FEED_INGESTION_TRIGGERED", 
+            details=results, 
             request=request
         )
     except Exception:
         pass
     
-    return result
+    return {"status": "success", "summary": results}
