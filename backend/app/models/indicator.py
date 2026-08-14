@@ -1,27 +1,41 @@
 import enum
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Enum as SQLEnum, JSON
+import uuid
+from datetime import datetime, timezone
+from sqlalchemy import Column, String, Integer, DateTime, Enum, JSON
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from app.db.base import Base
 
 class IndicatorType(str, enum.Enum):
     IP = "ip"
     DOMAIN = "domain"
     URL = "url"
-    HASH = "hash"
+    HASH_MD5 = "hash_md5"
+    HASH_SHA256 = "hash_sha256"
+
+class ThreatSeverity(str, enum.Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 class IndicatorStatus(str, enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    REVOKED = "revoked"
+    ACTIVE = "ACTIVE"
+    REVOKED = "REVOKED"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
 
 class Indicator(Base):
     __tablename__ = "indicators"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     value = Column(String, unique=True, index=True, nullable=False)
-    type = Column(SQLEnum(IndicatorType), nullable=False, index=True)
-    status = Column(SQLEnum(IndicatorStatus), default=IndicatorStatus.ACTIVE, index=True)
-    severity = Column(String, default="medium")
-    threat_actor = Column(String, nullable=True)
-    tags = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    type = Column(Enum(IndicatorType), nullable=False)
+    source = Column(String, nullable=False)
+    confidence = Column(Integer, default=50)
+    threat_score = Column(Integer, default=50)
+    severity = Column(Enum(ThreatSeverity), default=ThreatSeverity.MEDIUM)
+    status = Column(Enum(IndicatorStatus), default=IndicatorStatus.ACTIVE)
+    tags = Column(ARRAY(String), default=[])
+    context = Column(JSON, default={})
+    sightings = Column(Integer, default=1)
+    first_seen = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_seen = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -33,3 +33,4 @@ def log_action(
     db.commit()
     db.refresh(log_entry)
     return log_entry
+
