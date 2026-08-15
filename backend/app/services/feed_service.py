@@ -7,17 +7,21 @@ from datetime import datetime
 from app.models.indicator import Indicator, IndicatorType, ThreatSeverity, IndicatorStatus
 from app.services.scoring_service import calculate_ioc_severity
 from app.services.search_service import index_indicator
+from app.services.alert_service import evaluate_ioc_for_alerts
 
 logger = logging.getLogger(__name__)
 
 def _save_and_index_ioc(db: Session, value: str, ioc_type: IndicatorType, source: str, confidence: int, tags: list = None, context: dict = None):
-    """Helper function to deduplicate, score, save to DB and project to Elasticsearch."""
+    """Helper function to deduplicate, score, save to DB, project to Elasticsearch, and trigger Alert Engine."""
     try:
         existing = db.query(Indicator).filter(Indicator.value == value).first()
         if existing:
             existing.sightings += 1
             existing.last_seen = datetime.utcnow()
             db.commit()
+            db.refresh(existing)
+            # Re-evaluate alert if sightings increase
+            evaluate_ioc_for_alerts(db, existing)
             return "updated"
 
         # Calculate severity and threat score
@@ -43,6 +47,9 @@ def _save_and_index_ioc(db: Session, value: str, ioc_type: IndicatorType, source
         db.add(new_ioc)
         db.commit()
         db.refresh(new_ioc)
+
+        # Trigger Real-Time Alert Engine
+        evaluate_ioc_for_alerts(db, new_ioc)
 
         # Project to Elasticsearch
         try:
@@ -71,7 +78,7 @@ def _save_and_index_ioc(db: Session, value: str, ioc_type: IndicatorType, source
 async def fetch_urlhaus_recent_urls(db: Session, limit: int = 10):
     url = "https://urlhaus.abuse.ch/downloads/json_recent/"
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
                 return {"source": "urlhaus", "status": "failed"}
@@ -117,7 +124,7 @@ async def fetch_threatfox_recent_iocs(db: Session, limit: int = 10):
     url = "https://threatfox-api.abuse.ch/api/v1/"
     payload = {"query": "get_iocs", "days": 1}
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(url, json=payload)
             if response.status_code != 200:
                 return {"source": "threatfox", "status": "failed"}
@@ -163,7 +170,7 @@ async def fetch_threatfox_recent_iocs(db: Session, limit: int = 10):
 async def fetch_feodo_tracker_ips(db: Session, limit: int = 10):
     url = "https://feodotracker.abuse.ch/downloads/ipblocklist_recent.json"
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
                 return {"source": "feodo_tracker", "status": "failed"}
@@ -193,7 +200,7 @@ async def fetch_malwarebazaar_recent_hashes(db: Session, limit: int = 10):
     url = "https://mb-api.abuse.ch/api/v1/"
     payload = {"query": "get_recent", "selector": "time"}
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(url, data=payload)
             if response.status_code != 200:
                 return {"source": "malwarebazaar", "status": "failed"}
@@ -220,3 +227,19 @@ async def fetch_malwarebazaar_recent_hashes(db: Session, limit: int = 10):
             return {"source": "malwarebazaar", "status": "success", "new_indicators": count}
     except Exception as e:
         return {"source": "malwarebazaar", "status": "timeout_or_error", "detail": str(e)}
+
+async def fetch_all_feeds(db: Session):
+    """Aggregate all 4 feeds."""
+    res_urlhaus = await fetch_urlhaus_recent_urls(db)
+    res_threatfox = await fetch_threatfox_recent_iocs(db)
+    res_feodo = await fetch_feodo_tracker_ips(db)
+    res_mb = await fetch_malwarebazaar_recent_hashes(db)
+    return {
+        "status": "success",
+        "summary": {
+            "urlhaus": res_urlhaus,
+            "threatfox": res_threatfox,
+            "feodo_tracker": res_feodo,
+            "malwarebazaar": res_mb
+        }
+    }
