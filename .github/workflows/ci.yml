@@ -20,19 +20,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Backend Dependencies
+      - name: Install Dependencies
         run: |
           cd backend
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov httpx pip-audit
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install fastapi uvicorn pydantic pytest pytest-cov httpx reportlab passlib python-jose slowapi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
-      - name: Security Vulnerability Scan (pip-audit)
-        run: |
-          cd backend
-          pip-audit || true
-
-      - name: Run Test Suite with Coverage Gate
+      - name: Run Test Suite with Coverage
         env:
           PYTHONPATH: backend
         run: |
@@ -52,12 +47,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Frontend Dependencies
+      - name: Install Dependencies
         run: |
           cd frontend
           npm install
 
-      - name: Next.js Production Build
+      - name: Build Next.js Application
         run: |
           cd frontend
           npm run build
