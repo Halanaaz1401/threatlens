@@ -1,6 +1,17 @@
+<div align="center">
+
 # 🛡️ ThreatLens — Cyber Threat Intelligence (CTI) Platform
 
-An enterprise-grade Cyber Threat Intelligence (CTI) and SOC platform designed to aggregate, correlate, enrich, score, and operationalise threat intelligence across Security Operations Center (SOC) workflows.
+[![CI/CD Pipeline](https://github.com/Halanaaz1401/threatlens/actions/workflows/ci.yml/badge.svg)](https://github.com/Halanaaz1401/threatlens/actions/workflows/ci.yml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0+-black.svg?logo=next.js&logoColor=white)](https://nextjs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.x-005571.svg?logo=elasticsearch&logoColor=white)](https://www.elastic.co)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+*An enterprise-grade Cyber Threat Intelligence (CTI) and SOC platform designed to aggregate, correlate, enrich, score, and operationalise threat intelligence across Security Operations Center (SOC) workflows.*
+
+</div>
 
 ---
 
