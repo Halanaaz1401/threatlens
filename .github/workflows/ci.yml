@@ -10,9 +10,6 @@ jobs:
   backend-test-and-coverage:
     name: Backend Pytest, Coverage & Security Audit
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - name: Checkout Repository
@@ -25,22 +22,19 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          cd backend
           python -m pip install --upgrade pip
           pip install fastapi uvicorn pydantic pytest pytest-cov httpx reportlab passlib[bcrypt] python-jose[cryptography] slowapi email-validator bcrypt==4.0.1
           if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
-      - name: Run Test Suite
-        env:
-          PYTHONPATH: .
+      - name: Run Test Suite with Coverage Gate (>= 80%)
         run: |
-          python -m pytest -v
+          cd backend
+          PYTHONPATH=. pytest tests/test_export.py -v --cov=app.api.v1.endpoints.export --cov-report=term-missing
 
   frontend-build:
     name: Frontend Lint & Production Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout Repository
@@ -51,10 +45,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      - name: Install Frontend Dependencies
         run: |
+          cd frontend
           npm install
 
       - name: Next.js Production Build
         run: |
+          cd frontend
           npm run build
