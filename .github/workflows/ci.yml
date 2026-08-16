@@ -27,12 +27,12 @@ jobs:
           pip install fastapi uvicorn pydantic pytest pytest-cov httpx reportlab passlib[bcrypt] python-jose[cryptography] slowapi email-validator bcrypt==4.0.1
           if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
-      - name: Run Test Suite with Coverage
-        env:
-          PYTHONPATH: backend
+      - name: Run Pytest Suite
         run: |
           cd backend
-          python -m pytest tests/test_export.py -v --cov=app.api.v1.endpoints.export --cov-report=term-missing
+          python -m pytest tests/ -v
+        env:
+          PYTHONPATH: .
 
   frontend-build:
     name: Frontend Lint & Production Build
@@ -47,7 +47,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm install
