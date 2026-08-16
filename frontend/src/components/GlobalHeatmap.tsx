@@ -3,122 +3,109 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
-import { Globe2, ShieldAlert } from "lucide-react";
 
-// Leaflet SSR hydration bypass
+// Dynamic import with SSR completely disabled
 const MapContainer = dynamic(
-  () => import("react-leaflet").then((m) => m.MapContainer),
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
 const TileLayer = dynamic(
-  () => import("react-leaflet").then((m) => m.TileLayer),
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
   { ssr: false }
 );
 const CircleMarker = dynamic(
-  () => import("react-leaflet").then((m) => m.CircleMarker),
+  () => import("react-leaflet").then((mod) => mod.CircleMarker),
   { ssr: false }
 );
-const Popup = dynamic(
-  () => import("react-leaflet").then((m) => m.Popup),
+const Tooltip = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Tooltip),
   { ssr: false }
 );
 
-interface ThreatOrigin {
+interface ThreatLocation {
   id: string;
+  name: string;
   lat: number;
   lng: number;
-  country: string;
-  city: string;
-  ip: string;
-  threat: string;
-  severity: "CRITICAL" | "HIGH" | "MEDIUM";
   count: number;
+  severity: "Critical" | "High" | "Medium";
+  color: string;
 }
 
-const threatLocations: ThreatOrigin[] = [
-  { id: "1", lat: 51.1657, lng: 10.4515, country: "Germany", city: "Frankfurt", ip: "185.220.101.4", threat: "Feodo C2 Node", severity: "CRITICAL", count: 34 },
-  { id: "2", lat: 55.7558, lng: 37.6173, country: "Russia", city: "Moscow", ip: "91.240.118.12", threat: "Ransomware Drop Site", severity: "CRITICAL", count: 48 },
-  { id: "3", lat: 37.7749, lng: -122.4194, country: "United States", city: "San Francisco", ip: "104.244.42.1", threat: "Phishing Infrastructure", severity: "HIGH", count: 19 },
-  { id: "4", lat: 31.2304, lng: 121.4737, country: "China", city: "Shanghai", ip: "220.181.38.148", threat: "Port Scanning & Exploit Probing", severity: "MEDIUM", count: 12 },
-  { id: "5", lat: 28.6139, lng: 77.2090, country: "India", city: "New Delhi", ip: "103.21.244.0", threat: "Credential Harvesting Proxy", severity: "HIGH", count: 22 },
-  { id: "6", lat: 52.3676, lng: 4.9041, country: "Netherlands", city: "Amsterdam", ip: "194.26.29.112", threat: "Cobalt Strike Beacon", severity: "CRITICAL", count: 29 },
+const THREAT_ORIGINS: ThreatLocation[] = [
+  { id: "1", name: "United States (US-East)", lat: 37.7749, lng: -122.4194, count: 1240, severity: "High", color: "#f97316" },
+  { id: "2", name: "Europe (Frankfurt C2)", lat: 50.1109, lng: 8.6821, count: 2890, severity: "Critical", color: "#ef4444" },
+  { id: "3", name: "Russia (Moscow Pivot)", lat: 55.7558, lng: 37.6173, count: 3410, severity: "Critical", color: "#ef4444" },
+  { id: "4", name: "India (Bengaluru Gateway)", lat: 12.9716, lng: 77.5946, count: 980, severity: "High", color: "#f97316" },
+  { id: "5", name: "East Asia (Seoul Ingress)", lat: 37.5665, lng: 126.978, count: 620, severity: "Medium", color: "#eab308" },
 ];
 
-export default function GlobalHeatmap() {
-  const [mounted, setMounted] = useState(false);
+export function GlobalHeatmap() {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true);
   }, []);
 
-  const getMarkerColor = (sev: string) => {
-    switch (sev) {
-      case "CRITICAL":
-        return "#ef4444";
-      case "HIGH":
-        return "#f97316";
-      default:
-        return "#eab308";
-    }
-  };
-
-  if (!mounted) {
+  if (!isClient) {
     return (
-      <div className="h-[380px] w-full rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center font-mono text-xs text-slate-500">
-        Loading Global Threat Telemetry Map...
+      <div className="h-[320px] w-full bg-[#080d19] rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 text-xs font-mono">
+        Initializing Live Geo-Telemetry Map...
       </div>
     );
   }
 
   return (
-    <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-xl space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+    <div className="space-y-3">
+      {/* Heatmap Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Globe2 className="h-5 w-5 text-red-400 animate-pulse" />
-          <span className="text-sm font-semibold text-slate-200">Global Threat Heatmap & Origin Telemetry</span>
+          <span className="w-5 h-5 rounded-full bg-red-950/90 border border-red-500 flex items-center justify-center text-[10px] text-red-400 font-bold">
+            ((o))
+          </span>
+          <h2 className="text-sm font-semibold text-slate-200">
+            Global Threat Heatmap &amp; Origin Telemetry
+          </h2>
         </div>
-        <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-red-500"></span> Live Geo-Enrichment Active
-        </span>
+        <div className="flex items-center gap-2 text-[11px] text-red-400 font-medium">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+          <span>Live Geo-Enrichment Active</span>
+        </div>
       </div>
 
-      <div className="h-[380px] w-full rounded-lg overflow-hidden border border-slate-800 relative z-0">
+      {/* Map Canvas */}
+      <div className="h-[320px] w-full rounded-lg overflow-hidden border border-slate-800 relative z-0">
         <MapContainer
           center={[25, 20]}
           zoom={2}
           scrollWheelZoom={false}
-          className="h-full w-full bg-[#0b1120]"
+          className="h-full w-full bg-[#080d19]"
         >
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
-          {threatLocations.map((loc) => (
+          {THREAT_ORIGINS.map((point) => (
             <CircleMarker
-              key={loc.id}
-              center={[loc.lat, loc.lng]}
-              radius={8 + loc.count / 6}
+              key={point.id}
+              center={[point.lat, point.lng]}
+              radius={point.severity === "Critical" ? 16 : point.severity === "High" ? 12 : 8}
               pathOptions={{
-                color: getMarkerColor(loc.severity),
-                fillColor: getMarkerColor(loc.severity),
-                fillOpacity: 0.6,
+                color: point.color,
+                fillColor: point.color,
+                fillOpacity: 0.5,
                 weight: 2,
               }}
             >
-              <Popup className="custom-popup">
-                <div className="p-1 font-mono text-xs text-slate-900">
-                  <div className="font-bold text-red-600 flex items-center gap-1">
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    {loc.threat}
-                  </div>
-                  <div className="mt-1">Target IP: <b>{loc.ip}</b></div>
-                  <div>Location: {loc.city}, {loc.country}</div>
-                  <div>Events Detected: <b>{loc.count}</b></div>
-                  <div className="mt-1 inline-block px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-200">
-                    {loc.severity}
-                  </div>
+              <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                <div className="bg-[#0b1220] border border-slate-700 p-2 rounded text-slate-200 text-xs shadow-lg">
+                  <p className="font-bold text-slate-100">{point.name}</p>
+                  <p className="text-[11px] text-slate-400">Events: {point.count.toLocaleString()}</p>
+                  <p className="text-[10px] font-mono text-amber-400 uppercase">
+                    Severity: {point.severity}
+                  </p>
                 </div>
-              </Popup>
+              </Tooltip>
             </CircleMarker>
           ))}
         </MapContainer>
@@ -126,3 +113,5 @@ export default function GlobalHeatmap() {
     </div>
   );
 }
+
+export default GlobalHeatmap;

@@ -1,70 +1,91 @@
+import uuid
+import io
+import csv
+from datetime import datetime
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
-import json
-import csv
-import io
-from app.db.session import get_db
+from app.database import get_db
 from app.models.indicator import Indicator
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/export", tags=["Export & STIX 2.1"])
+
+def to_stix_pattern(ioc_type: str, value: str) -> str:
+    """Formats canonical IOC into standard STIX 2.1 Pattern"""
+    if ioc_type == "ip":
+        return f"[ipv4-addr:value = '{value}']"
+    elif ioc_type == "domain":
+        return f"[domain-name:value = '{value}']"
+    elif ioc_type == "url":
+        return f"[url:value = '{value}']"
+    elif ioc_type == "hash_sha256":
+        return f"[file:hashes.'SHA-256' = '{value}']"
+    elif ioc_type == "cve":
+        return f"[vulnerability:name = '{value}']"
+    return f"[custom-ioc:value = '{value}']"
 
 @router.get("/stix")
 def export_stix_bundle(db: Session = Depends(get_db)):
-    indicators = db.query(Indicator).limit(100).all()
-    
+    """Exports all active indicators into a STIX 2.1 JSON Bundle"""
+    iocs = db.query(Indicator).filter(Indicator.status == "active").all()
     stix_objects = []
-    for ind in indicators:
-        pattern_val = f"[{ind.type.lower()}:value = '{ind.value}']"
-        stix_objects.append({
+
+    for ioc in iocs:
+        created_time = ioc.created_at.strftime("%Y-%m-%dT%H:%M:%S.000Z") if ioc.created_at else datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        stix_obj = {
             "type": "indicator",
             "spec_version": "2.1",
-            "id": f"indicator--{ind.id}",
-            "created": ind.created_at.isoformat() if hasattr(ind, 'created_at') and ind.created_at else "2026-08-15T00:00:00Z",
-            "modified": ind.updated_at.isoformat() if hasattr(ind, 'updated_at') and ind.updated_at else "2026-08-15T00:00:00Z",
-            "pattern": pattern_val,
+            "id": f"indicator--{ioc.id}",
+            "created": created_time,
+            "modified": created_time,
+            "name": f"ThreatLens IOC: {ioc.value}",
+            "description": f"Enriched threat indicator with score {ioc.severity_score}/100 and MITRE {ioc.mitre_technique or 'N/A'}",
+            "indicator_types": ["malicious-activity"],
+            "pattern": to_stix_pattern(ioc.type, ioc.value),
             "pattern_type": "stix",
-            "valid_from": ind.created_at.isoformat() if hasattr(ind, 'created_at') and ind.created_at else "2026-08-15T00:00:00Z",
-            "confidence": getattr(ind, 'confidence', 80),
-            "labels": [getattr(ind, 'category', 'malicious-activity') or "malicious-activity"],
+            "pattern_version": "2.1",
+            "valid_from": created_time,
+            "confidence": ioc.confidence or 80,
+            "labels": [tag.strip() for tag in (ioc.tags or "threatlens").split(",") if tag.strip()],
             "custom_properties": {
-                "x_threatlens_severity": getattr(ind, 'severity_score', 75),
-                "x_threatlens_tlp": getattr(ind, 'tlp', 'AMBER')
+                "x_threatlens_severity_score": ioc.severity_score,
+                "x_threatlens_tlp": ioc.tlp or "amber"
             }
-        })
+        }
+        stix_objects.append(stix_obj)
 
     bundle = {
         "type": "bundle",
-        "id": "bundle--threatlens-export-2026",
+        "id": f"bundle--{uuid.uuid4()}",
+        "spec_version": "2.1",
         "objects": stix_objects
     }
-    
-    return Response(
-        content=json.dumps(bundle, indent=2),
-        media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=threatlens_stix_bundle.json"}
-    )
+
+    return bundle
 
 @router.get("/csv")
 def export_csv(db: Session = Depends(get_db)):
-    indicators = db.query(Indicator).limit(500).all()
-    
+    """Exports all active indicators as downloadable CSV"""
+    iocs = db.query(Indicator).filter(Indicator.status == "active").all()
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Type", "Value", "Severity Score", "Confidence", "TLP", "Category"])
-    
-    for ind in indicators:
+    writer.writerow(["ID", "Value", "Type", "Severity_Score", "Confidence", "TLP", "MITRE_Technique", "Tags", "First_Seen"])
+
+    for ioc in iocs:
         writer.writerow([
-            ind.id,
-            ind.type,
-            ind.value,
-            getattr(ind, 'severity_score', 0),
-            getattr(ind, 'confidence', 0),
-            getattr(ind, 'tlp', 'AMBER'),
-            getattr(ind, 'category', 'Unknown') or "Unknown"
+            ioc.id,
+            ioc.value,
+            ioc.type,
+            ioc.severity_score,
+            ioc.confidence,
+            ioc.tlp,
+            ioc.mitre_technique,
+            ioc.tags,
+            ioc.first_seen
         ])
-    
+
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=threatlens_iocs.csv"}
+        headers={"Content-Disposition": "attachment; filename=threatlens_indicators.csv"}
     )
