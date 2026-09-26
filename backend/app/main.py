@@ -61,26 +61,51 @@ async def root_websocket_alerts_endpoint(
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
 
-# Health Check Endpoint (Public)
+# Health Check Endpoints (Public)
 @app.get("/health", tags=["System"])
-def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def health_check() -> Dict[str, Any]:
     """
-    Operational Health Check.
-    Distinguishes application operational status from database connectivity.
+    Operational & Infrastructure Health Check (Phase 2).
+    Monitors application status, database, Redis, and Elasticsearch.
+    Distinguishes healthy, degraded, and unavailable states without leaking credentials.
     """
-    db_status = "healthy"
-    try:
-        db.execute(text("SELECT 1"))
-    except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+    from app.database import check_db_health
+    from app.core.redis import redis_manager
+    from app.services.search_service import get_es_health
+
+    db_health = check_db_health()
+    redis_health = redis_manager.get_health()
+    es_health = get_es_health()
+
+    if db_health["status"] != "healthy":
+        overall_status = "unhealthy"
+    elif redis_health["status"] != "healthy" or es_health["status"] != "healthy":
+        overall_status = "degraded"
+    else:
+        overall_status = "healthy"
 
     return {
-        "status": "ok" if "unhealthy" not in db_status else "degraded",
+        "status": "ok" if overall_status in ("healthy", "degraded") else "unhealthy",
+        "overall_health": overall_status,
         "application": "healthy",
-        "database": db_status,
+        "database": db_health.get("status", "healthy"),
+        "infrastructure": {
+            "database": db_health,
+            "redis": redis_health,
+            "elasticsearch": es_health
+        },
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0"
     }
+
+@app.get("/health/ready", tags=["System"])
+def readiness_check() -> Dict[str, Any]:
+    """Readiness probe for container orchestrators (Kubernetes / Docker Compose)."""
+    from app.database import check_db_health
+    db_health = check_db_health()
+    if db_health["status"] != "healthy":
+        raise HTTPException(status_code=503, detail="Database persistence not ready")
+    return {"status": "ready", "database": db_health["dialect"]}
 
 @app.get("/", tags=["System"])
 def root():

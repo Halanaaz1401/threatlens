@@ -1,6 +1,60 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: threatlens_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-threatlens_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-threatlens_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-threatlens_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-threatlens_admin} -d ${POSTGRES_DB:-threatlens_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - threatlens_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: threatlens_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - threatlens_network
+    restart: unless-stopped
+
+  elasticsearch:
+    image: elasticsearch:8.13.4
+    container_name: threatlens_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - threatlens_network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -9,9 +63,28 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./threatlens.db
-    volumes:
-      - ./backend:/app
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-threatlens_admin}:${POSTGRES_PASSWORD:-threatlens_secure_password_2026}@postgres:5432/${POSTGRES_DB:-threatlens_db}
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_INDEX=threatlens_indicators
+      - SECRET_KEY=${SECRET_KEY:-threatlens_enterprise_production_jwt_secret_key_2026}
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://threatlens.ashlynxcyber.in
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - threatlens_network
     restart: unless-stopped
 
   frontend:
@@ -24,8 +97,17 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      backend:
+        condition: service_healthy
+    networks:
+      - threatlens_network
     restart: unless-stopped
+
+networks:
+  threatlens_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  es_data:

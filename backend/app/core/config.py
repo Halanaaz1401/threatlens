@@ -34,6 +34,15 @@ class Settings(BaseSettings):
             "https://threatlens.ashlynxcyber.in",
         ]
 
+    # Redis Configuration
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    # Elasticsearch Configuration
+    ELASTICSEARCH_URL: str = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+    ELASTICSEARCH_USERNAME: str = os.getenv("ELASTICSEARCH_USERNAME", "")
+    ELASTICSEARCH_PASSWORD: str = os.getenv("ELASTICSEARCH_PASSWORD", "")
+    ELASTICSEARCH_INDEX: str = os.getenv("ELASTICSEARCH_INDEX", "threatlens_indicators")
+
     @property
     def DATABASE_URL(self) -> str:
         explicit_url = os.getenv("DATABASE_URL")

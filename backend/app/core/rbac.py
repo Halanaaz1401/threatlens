@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 import jwt
 from sqlalchemy.orm import Session
 
+from app.core.redis import redis_manager
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.core.security import SECRET_KEY, ALGORITHM
@@ -56,11 +57,20 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    revoked_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token has been revoked",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
+        jti = payload.get("jti")
+        if jti and redis_manager.is_token_revoked(jti):
+            raise revoked_exception
     except jwt.ExpiredSignatureError:
         raise expired_exception
     except jwt.PyJWTError:
@@ -95,6 +105,10 @@ async def get_ws_current_user(
         subject = payload.get("sub")
         if not subject:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token claims")
+            return None
+        jti = payload.get("jti")
+        if jti and redis_manager.is_token_revoked(jti):
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Token has been revoked")
             return None
     except jwt.ExpiredSignatureError:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Token has expired")

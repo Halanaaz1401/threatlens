@@ -5,14 +5,22 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.models.user import User, UserRole
+from datetime import datetime, timezone
+import logging
+import jwt
 from app.core.security import (
     verify_password,
     get_password_hash,
     create_access_token,
     needs_argon2_rehash,
+    SECRET_KEY,
+    ALGORITHM,
 )
-from app.core.rbac import get_current_user, require_admin, normalize_role
+from app.core.rbac import get_current_user, require_admin, normalize_role, oauth2_scheme
+from app.core.redis import redis_manager
 from app.services.audit_service import log_action
+
+logger = logging.getLogger("threatlens.auth")
 
 router = APIRouter()
 
@@ -169,6 +177,39 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     )
 
     return {"access_token": access_token, "token_type": "bearer", "role": user_role_str}
+
+@router.post("/logout")
+def logout(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Logout user by revoking their JWT access token in Redis.
+    Revoked token remains invalid until its natural expiration.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti and exp:
+            now_ts = datetime.now(timezone.utc).timestamp()
+            remaining_ttl = int(exp - now_ts)
+            redis_manager.revoke_token(jti, max(1, remaining_ttl))
+    except Exception as e:
+        logger.warning(f"Error revoking token on logout: {e}")
+
+    log_action(
+        db,
+        action="USER_LOGOUT",
+        user_id=current_user.id,
+        actor=current_user.email,
+        target_resource="auth",
+        request=request
+    )
+
+    return {"status": "success", "message": "Successfully logged out. Token revoked."}
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):

@@ -11,8 +11,11 @@ from app.core.config import settings
 from app.db.base import Base
 import app.models
 
+from app.database import get_database_url
+
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+target_url = os.getenv("DATABASE_URL") or get_database_url()
+config.set_main_option("sqlalchemy.url", target_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
