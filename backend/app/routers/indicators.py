@@ -1,3 +1,7 @@
+"""
+DEPRECATED: Legacy router replaced by app.api.v1.endpoints.indicators in Phase 1A.
+Retained for historical audit reference; not mounted in canonical app.main.
+"""
 import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session

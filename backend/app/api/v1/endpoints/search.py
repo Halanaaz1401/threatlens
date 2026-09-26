@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Query
 from typing import Optional
+from fastapi import APIRouter, Query, Depends
+
 from app.services.search_service import search_indicators_es
+from app.models.user import User
+from app.core.rbac import require_authenticated_user
 
 router = APIRouter()
 
@@ -11,10 +14,11 @@ def search_indicators(
     severity: Optional[str] = Query(None, description="Filter by severity (LOW, MEDIUM, HIGH, CRITICAL)"),
     status: Optional[str] = Query(None, description="Filter by status (ACTIVE, REVOKED, FALSE_POSITIVE)"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100)
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_authenticated_user)
 ):
     """
-    Elasticsearch Full-Text and Faceted Search API.
+    Elasticsearch Full-Text and Faceted Search API (Authenticated).
     Returns matched records along with faceted bucket aggregations.
     """
     results = search_indicators_es(

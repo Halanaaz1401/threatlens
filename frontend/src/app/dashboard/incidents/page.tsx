@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRole } from "@/context/RoleContext";
 import { safeFetchIndicators } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
 
 export default function IncidentResponsePage() {
   const { persona } = useRole();
@@ -23,10 +24,11 @@ export default function IncidentResponsePage() {
   const handleGenerateReport = async () => {
     try {
       let res = null;
+      const headers = { ...getAuthHeaders() };
       try {
-        res = await fetch("http://127.0.0.1:8000/api/v1/export/stix");
+        res = await fetch("http://127.0.0.1:8000/api/v1/export/stix", { headers });
       } catch {
-        res = await fetch("http://localhost:8000/api/v1/export/stix");
+        res = await fetch("http://localhost:8000/api/v1/export/stix", { headers });
       }
 
       if (res && res.ok) {

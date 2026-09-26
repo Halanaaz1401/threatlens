@@ -1,17 +1,40 @@
+from typing import List, Union
 from fastapi import HTTPException, status, Depends
-from app.models.user import User
-from app.core.security import get_current_user
+from sqlalchemy.orm import Session
 
-def require_roles(allowed_roles: list[str]):
-    def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role not in allowed_roles and current_user.role != "Administrator":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error_code": "FORBIDDEN_ACTION",
-                    "message": f"Role '{current_user.role}' lacks permission for this action.",
-                    "correlation_id": "sec-rbac-denial"
-                }
-            )
-        return current_user
-    return role_checker
+from app.database import get_db
+from app.models.user import User, UserRole, Role
+from app.core.rbac import (
+    get_current_user,
+    get_ws_current_user,
+    RoleChecker,
+    oauth2_scheme,
+    require_authenticated_user,
+    require_viewer,
+    require_analyst,
+    require_engineer,
+    require_admin,
+    normalize_role,
+)
+
+def require_roles(allowed_roles: List[Union[str, UserRole]]):
+    """General dependency factory for custom role allowances."""
+    return RoleChecker(allowed_roles)
+
+__all__ = [
+    "get_db",
+    "get_current_user",
+    "get_ws_current_user",
+    "require_roles",
+    "RoleChecker",
+    "oauth2_scheme",
+    "require_authenticated_user",
+    "require_viewer",
+    "require_analyst",
+    "require_engineer",
+    "require_admin",
+    "normalize_role",
+    "User",
+    "UserRole",
+    "Role",
+]

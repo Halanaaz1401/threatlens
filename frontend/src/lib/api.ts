@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "./auth";
+
 export async function safeFetchIndicators() {
   const fallback = [
     { id: "1", value: "CVE-2024-21413", type: "cve", severity_score: 98, confidence: 100, mitre_technique: "T1190", tags: "cisa_kev", status: "active" },
@@ -9,10 +11,14 @@ export async function safeFetchIndicators() {
 
   try {
     let res = null;
+    const headers = {
+      ...getAuthHeaders(),
+    };
+
     try {
-      res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store" });
+      res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store", headers });
     } catch {
-      res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store" });
+      res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store", headers });
     }
 
     if (res && res.ok) {

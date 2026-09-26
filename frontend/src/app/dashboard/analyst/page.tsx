@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface IOCItem {
   id: string;
@@ -89,10 +90,11 @@ export default function AnalystDashboardPage() {
     try {
       setLoading(true);
       let res = null;
+      const headers = { ...getAuthHeaders() };
       try {
-        res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store" });
+        res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store", headers });
       } catch {
-        res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store" });
+        res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store", headers });
       }
 
       if (res && res.ok) {
@@ -172,10 +174,11 @@ export default function AnalystDashboardPage() {
     try {
       setSyncing(true);
       let res = null;
+      const headers = { ...getAuthHeaders() };
       try {
-        res = await fetch("http://127.0.0.1:8000/api/v1/indicators/sync-feeds", { method: "POST" });
+        res = await fetch("http://127.0.0.1:8000/api/v1/indicators/sync-feeds", { method: "POST", headers });
       } catch {
-        res = await fetch("http://localhost:8000/api/v1/indicators/sync-feeds", { method: "POST" });
+        res = await fetch("http://localhost:8000/api/v1/indicators/sync-feeds", { method: "POST", headers });
       }
 
       if (res && res.ok) {

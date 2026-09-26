@@ -24,7 +24,7 @@ class SecurityEvent(Base):
     __tablename__ = "security_events"
     __table_args__ = {"extend_existing": True}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     source_ip = Column(String(50), nullable=True)
     destination_ip = Column(String(50), nullable=True)
     domain = Column(String(255), nullable=True)
@@ -37,7 +37,7 @@ class Incident(Base):
     __tablename__ = "incidents"
     __table_args__ = {"extend_existing": True}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     severity = Column(Enum(IncidentSeverity), default=IncidentSeverity.HIGH, nullable=False)
@@ -45,7 +45,7 @@ class Incident(Base):
     assignee = Column(String(100), nullable=True)
     
     # Associated indicator & alert references
-    indicator_id = Column(UUID(as_uuid=True), ForeignKey("indicators.id", ondelete="SET NULL"), nullable=True)
+    indicator_id = Column(String(36), ForeignKey("indicators.id", ondelete="SET NULL"), nullable=True)
     matched_ioc_value = Column(String(255), nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -57,8 +57,8 @@ class IncidentTimeline(Base):
     __tablename__ = "incident_timeline"
     __table_args__ = {"extend_existing": True}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_id = Column(String(36), ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False)
     action = Column(String(255), nullable=False)
     details = Column(Text, nullable=True)
     actor = Column(String(100), default="System", nullable=False)

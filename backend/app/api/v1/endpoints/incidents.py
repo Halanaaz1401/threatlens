@@ -1,12 +1,17 @@
-import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.models.incident import Incident, IncidentStatus, IncidentSeverity, IncidentTimeline
+from app.models.user import User
 from app.services.correlation_service import correlate_and_create_incident
+from app.services.audit_service import log_action
+from app.core.rbac import (
+    require_authenticated_user,
+    require_analyst,
+)
 
 router = APIRouter()
 
@@ -26,9 +31,10 @@ class IncidentStatusUpdate(BaseModel):
 @router.post("/correlate-event")
 def ingest_and_correlate(
     payload: SecurityEventPayload,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst)
 ):
-    """Ingest internal telemetry and trigger automated IOC correlation."""
+    """Ingest internal telemetry and trigger automated IOC correlation (Analyst+)."""
     incident = correlate_and_create_incident(db, payload.dict())
     if incident:
         return {
@@ -44,9 +50,10 @@ def get_incidents(
     skip: int = 0,
     limit: int = 50,
     status: Optional[IncidentStatus] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
 ):
-    """Retrieve all correlated incidents."""
+    """Retrieve all correlated incidents (Authenticated)."""
     query = db.query(Incident)
     if status:
         query = query.filter(Incident.status == status)
@@ -54,10 +61,11 @@ def get_incidents(
 
 @router.get("/{incident_id}/timeline")
 def get_incident_timeline(
-    incident_id: uuid.UUID,
-    db: Session = Depends(get_db)
+    incident_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
 ):
-    """Retrieve chronological investigation timeline for an incident."""
+    """Retrieve chronological investigation timeline for an incident (Authenticated)."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
@@ -65,28 +73,46 @@ def get_incident_timeline(
 
 @router.patch("/{incident_id}")
 def update_incident_status(
-    incident_id: uuid.UUID,
+    incident_id: str,
     payload: IncidentStatusUpdate,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst)
 ):
-    """Update incident status and automatically append to investigation timeline."""
+    """Update incident status and automatically append to investigation timeline (Analyst+)."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    old_status = incident.status.value
+    old_status = incident.status.value if hasattr(incident.status, "value") else str(incident.status)
+    new_status = payload.status.value if hasattr(payload.status, "value") else str(payload.status)
+
     incident.status = payload.status
     if payload.assignee:
         incident.assignee = payload.assignee
 
+    actor_name = current_user.email or current_user.full_name or "SOC Analyst"
+
     # Append timeline entry
     timeline_entry = IncidentTimeline(
         incident_id=incident.id,
-        action=f"STATUS_CHANGED: {old_status} -> {payload.status.value}",
+        action=f"STATUS_CHANGED: {old_status} -> {new_status}",
         details=payload.note or f"Assigned to {payload.assignee or 'Analyst'}",
-        actor=payload.assignee or "SOC Analyst"
+        actor=actor_name
     )
     db.add(timeline_entry)
     db.commit()
     db.refresh(incident)
+
+    # Audit log
+    log_action(
+        db,
+        action="INCIDENT_STATUS_UPDATE",
+        actor=current_user.email,
+        user_id=current_user.id,
+        target_resource=f"incident:{incident.id}",
+        details={"old_status": old_status, "new_status": new_status, "assignee": incident.assignee},
+        request=request
+    )
+
     return incident

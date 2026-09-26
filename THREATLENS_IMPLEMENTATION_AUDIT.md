@@ -1,0 +1,622 @@
+# THREATLENS — PHASE 0: FORENSIC IMPLEMENTATION AUDIT REPORT
+**Target Repository:** `Halanaaz1401/threatlens`  
+**Live Application Audited:** `https://threatlens.ashlynxcyber.in/`  
+**PRD Reference:** ThreatLens — Cyber Threat Intelligence Dashboard PRD v1.0 (Sentinova Security Systems)  
+**Audit Date:** September 2026  
+**Auditor Mode:** Forensic Static & Telemetry Analysis — STRICT AUDIT ONLY (No production code modified)
+
+---
+
+## 1. Executive Summary
+
+ThreatLens is conceptualized in its Product Requirements Document (PRD v1.0) as an enterprise-grade Cyber Threat Intelligence (CTI) and Security Operations Center (SOC) platform designed to aggregate, correlate, enrich, score, and operationalise threat intelligence across real-time security operations workflows. The platform specification mandates an end-to-end decoupled architecture composed of:
+1. A **Next.js 16** dark-mode SOC frontend with role-specific dashboards (SOC Analyst, Incident Responder, Threat Hunter, CISO Executive);
+2. A **FastAPI** REST and WebSocket backend gateway;
+3. A background task and scheduling layer for multi-source feed ingestion;
+4. A multi-tier persistence and caching architecture comprising **PostgreSQL** (system of record), **Elasticsearch 8.x** (sub-second full-text and faceted search), and **Redis** (enrichment caching and real-time Pub/Sub broker);
+5. Standards-compliant integrations including **STIX 2.1**, **TAXII 2.1**, and **MITRE ATT&CK v14**.
+
+> [!NOTE]
+> **PHASE 1A CONSOLIDATION STATUS (COMPLETED — SEPTEMBER 2026):**  
+> The dual architecture disconnect has been resolved. The canonical backend router tree has been unified at `app.api.v1.api.api_router` (`backend/app/api/v1/endpoints/`), mounted under `/api/v1` in `app/main.py`. The legacy `backend/app/routers/` tree has been deprecated with headers. All models inherit from canonical `app.db.base.Base`, with unified String(36) UUIDs and resilient cross-database serialization. Operational `/health` endpoint and full test suite (13 passing tests) have been validated. See `PHASE_1A_FOUNDATION_REPORT.md`.
+
+> [!NOTE]
+> **PHASE 1B SECURITY HARDENING STATUS (COMPLETED — SEPTEMBER 2026):**  
+> A real server-side security architecture has been implemented across the backend. User lookup is strictly database-driven with Argon2id password hashing and transparent legacy hash upgrade. User self-registration enforces the safe default role `viewer` and rejects administrative escalation attempts. JWT access tokens embed expiration/issuance claims and are verified via environment secrets. Server-side RBAC dependencies (`get_current_user`, `RoleChecker`) protect all canonical `/api/v1` endpoints. The canonical alert WebSocket gateway at `/api/v1/ws/alerts` is authenticated via JWT, closing unauthenticated connections with code 1008 (Policy Violation). CORS has been restricted to a strict whitelist including `https://threatlens.ashlynxcyber.in`. Audit logging records all authentication and state-changing events. All 28 pytest unit/integration tests and 12-step standalone verification pass. See `PHASE_1B_SECURITY_REPORT.md`.
+
+### Forensic Audit Assessment
+The forensic audit reveals that while the project exhibits substantial frontend scaffolding, stylized layouts, and fragments of advanced backend services, **the running application was fundamentally decoupled from the intended production data pipeline and backing infrastructure**. 
+
+Specifically:
+- **Dual Architecture Disconnect [RESOLVED IN PHASE 1A]:** Two competing backend architectural trees existed: `backend/app/routers/` (the active, legacy router tree) and `backend/app/api/v1/endpoints/` (the intended enterprise tree). In Phase 1A, `backend/app/api/v1/endpoints/` was consolidated as canonical, imports were resolved, and legacy routers were deprecated.
+- **Simulated Real-Time Pipeline:** The real-time WebSocket feed (`/ws/alerts`) does not deliver real ingested indicators or database alerts. Instead, it runs an in-process `asyncio` timer broadcasting hardcoded synthetic alerts from a 4-element array every 6 seconds.
+- **Client-Side Simulation & Mock Fallbacks:** When the frontend is loaded remotely (e.g. at the live URL `https://threatlens.ashlynxcyber.in/`), it attempts to fetch from `http://127.0.0.1:8000`. Upon expected connection failure, it silently falls back to hardcoded client-side mock arrays. Indicator enrichment, containment actions, SIEM rule exports, and threat hunts are client-side cosmetic simulations (e.g., executing browser `alert()` dialogs).
+- **Orphaned Visual Analytics:** Core visualization components specified in the PRD and shown in documentation—specifically `GlobalHeatmap.tsx` (Leaflet geo-map), `AnalyticsCharts.tsx` (Recharts trend velocity & donut distribution), and `AlertQueue.tsx`—are completely orphaned and never rendered in any active page.
+- **Severe Security Vulnerabilities:** Critical security controls are absent or compromised. Passwords and JWT secret keys are hardcoded in source code and Kubernetes YAML manifests; authentication is bypassed on active alert and indicator endpoints; role-based access control (RBAC) is entirely client-side via an unauthenticated `localStorage` dropdown defaulting to `Administrator`; and database files, coverage artifacts, and `.pyc` caches are committed directly into version control.
+- **Backing Infrastructure Absence:** Despite documentation claims, **PostgreSQL, Elasticsearch, and Redis are completely absent from `docker-compose.yml`** and are missing from Kubernetes resource manifests. Search queries in the running API execute SQLite `LIKE` queries rather than Elasticsearch aggregations.
+- **Test Suite Breakdown:** The test suite contains only 3 test cases: one deliberately passes on HTTP 404, one crashes due to a fatal `TypeError` in arguments and assertions, and one tests that Elasticsearch is unavailable. Test coverage is approximately 0% against the required 80% baseline.
+
+---
+
+## 2. Overall Completion Assessment
+
+### Classification Breakdown
+
+Across the 41 total requirements audited (29 Functional Requirements and 12 Non-Functional Requirements):
+
+| Classification | Functional (FR) | Non-Functional (NFR) | Total | Percentage |
+| :--- | :---: | :---: | :---: | :---: |
+| **REAL** | 4 | 0 | **4** | **9.8%** |
+| **PARTIAL** | 8 | 3 | **11** | **26.8%** |
+| **MOCK/SIMULATED** | 7 | 1 | **8** | **19.5%** |
+| **BROKEN** | 2 | 8 | **10** | **24.4%** |
+| **MISSING** | 8 | 0 | **8** | **19.5%** |
+| **TOTAL** | **29** | **12** | **41** | **100.0%** |
+
+### High-Level Status Summary
+- **Working / Demonstrable End-to-End (REAL):** STIX 2.1 JSON bundle export (`/api/v1/export/stix`), CSV export (`/api/v1/export/csv`), the pure mathematical severity scoring function in `scoring.py`, server-side RBAC enforcement (`FR-26`), and authenticated REST and WebSocket APIs (`FR-28`) operate genuinely on real data without simulated shortcuts.
+- **Partially Implemented (PARTIAL):** Basic SQLite CRUD for indicators, manual feed synchronization triggering public Abuse.ch endpoints, alert status transitions in the database, and dark-theme UI shells.
+- **Simulated (MOCK/SIMULATED):** WebSocket threat streaming payload (underlying broadcaster uses timer loop until Redis Pub/Sub in Phase 3), deep indicator enrichment, executive KPIs, adversary campaign tracking, forensic incident timelines, attack heatmaps, and trend charts.
+- **Broken (BROKEN):** Elasticsearch full-text search, automated event correlation, CI/CD pipeline, backend test suite against external infrastructure, and container networking on cloud. (Server-side RBAC and dual router tree resolved in Phase 1A/1B).
+- **Missing (MISSING):** TAXII 2.1 client/server, dynamic feed management UI, configurable IOC time-to-live (TTL), indicator relationship graphs, configurable alert rule engine, custom dashboard widget builder, automated PDF executive briefing generation, and inbound SIEM/EDR webhooks.
+
+---
+
+## 3. Requirement Traceability Matrix
+
+| ID | Requirement | Status | Evidence | Files | Problem | Required Fix |
+| :--- | :--- | :---: | :--- | :--- | :--- | :--- |
+| **FR-01** | Ingest indicators from at least six configured public/private sources on independent schedules. | **PARTIAL** | `app/services/ingestion.py` fetches Feodo, URLhaus, MalwareBazaar, ThreatFox. OTX and CISA KEV are static Python lists. | `backend/app/services/ingestion.py`, `backend/app/routers/indicators.py` | AlienVault OTX and CISA KEV are hardcoded mock arrays. No Celery/cron scheduling exists; sync is manual only. | Implement real API integration for OTX & CISA KEV; configure Celery beat or APScheduler for independent polling intervals. |
+| **FR-02** | Normalise every ingested indicator into a canonical schema regardless of source format (JSON, CSV, STIX). | **PARTIAL** | `ingestion.py` maps feeds to basic dicts with value, type, confidence. | `backend/app/services/ingestion.py`, `backend/app/models/indicator.py` | No STIX 2.1 or CSV parser for ingestion. Canonical model lacks TLP, first/last seen decay, and raw telemetry fields. | Build unified ingestion normalizer supporting JSON, CSV, and STIX 2.1; enforce strict Pydantic canonical schema. |
+| **FR-03** | Deduplicate indicators to a single canonical record, retaining a per-source provenance list. | **PARTIAL** | `routers/indicators.py` checks `db.query(Indicator).filter(value == val).first()`. | `backend/app/routers/indicators.py` | If indicator already exists, insertion is skipped entirely; provenance (`IndicatorSource`) is NOT recorded for subsequent sightings. | Implement canonical upsert: increment sightings, update `last_seen`, and append to `indicator_sources` provenance table. |
+| **FR-04** | Support TAXII 2.1 collections as an ingestion transport. | **MISSING** | No TAXII client, routes, or dependencies found in codebase. | `backend/requirements.txt` | Zero implementation of TAXII discovery, collections, or envelope parsing. | Add `taxii2-client` dependency and build a background TAXII 2.1 polling worker. |
+| **FR-05** | Allow a security engineer to add, disable and re-poll a feed from the UI without code changes. | **MISSING** | `models/feed.py` has a `Feed` table, but no CRUD endpoints or UI exist. | `backend/app/models/feed.py`, `frontend/src/app/dashboard/` | Feed configuration is hardcoded; no UI exists to manage feeds. | Create `/api/v1/feeds` CRUD endpoints and add Feed Management tab to UI. |
+| **FR-06** | Store, view, edit and expire IOCs of type IP, domain, URL, file hash (MD5/SHA-1/SHA-256), email and CVE. | **PARTIAL** | `Indicator` model stores IP, domain, URL, hash_sha256, cve. `GET /api/v1/indicators` returns list. | `backend/app/models/indicator.py`, `backend/app/routers/indicators.py` | No single IOC retrieval (`GET /{id}`), no edit endpoint, no expiration endpoint, and MD5/SHA-1/email types lack handlers. | Implement full REST lifecycle (`GET /{id}`, `PUT /{id}`, `PATCH /{id}/status`, `DELETE /{id}`) with all required IOC types. |
+| **FR-07** | Attach tags, TLP marking, ATT&CK technique IDs and free-text analyst notes to any IOC. | **PARTIAL** | DB schema has `tags`, `tlp`, `mitre_technique` columns. | `backend/app/models/indicator.py` | No analyst notes column in active model; no endpoint or UI exists to edit tags, TLP, or notes on existing IOCs. | Add `analyst_notes` column to `Indicator` table; build tagging and note-taking UI modal in analyst drawer. |
+| **FR-08** | Apply configurable time-to-live so stale indicators automatically age out of active status. | **MISSING** | Indicators remain `status="active"` indefinitely. | `backend/app/models/indicator.py` | No TTL timestamp calculation or expiration job exists. | Add `expires_at` / `ttl_days` column and a periodic background task to transition stale indicators to `expired`. |
+| **FR-09** | Maintain relationships between IOCs (e.g. domain resolves-to IP, hash communicates-with domain). | **MISSING** | No relationship tables or graph models exist. | `backend/app/models/` | PRD `indicator_relationships` table is completely missing. | Create `indicator_relationships` table (`source_id`, `target_id`, `relationship_type`) and expose graph querying API. |
+| **FR-10** | Perform IP reputation analysis, aggregating verdicts and abuse confidence from reputation sources. | **MOCK/SIMULATED** | Hardcoded reputation score (95) in `ingestion.py`; synthetic strings in frontend `handleEnrich`. | `backend/app/services/ingestion.py`, `frontend/src/app/dashboard/analyst/page.tsx` | No real reputation queries (e.g. AbuseIPDB API). Frontend displays client-side hardcoded strings. | Integrate AbuseIPDB API in `enrichment_service.py` and call it from backend on demand. |
+| **FR-11** | Detect and flag malicious domains, including newly-registered and known-phishing domains. | **MOCK/SIMULATED** | `enrichment_service.py:63` returns hardcoded dummy dict without any external lookup. | `backend/app/services/enrichment_service.py` | Domain analysis is a dummy stub returning `{ "status": "Enriched" }`. | Integrate WHOIS/RDAP, passive DNS, or URLhaus domain feeds to flag newly-registered and malicious domains. |
+| **FR-12** | Look up malware hashes against detection services and display engine verdict ratios. | **MOCK/SIMULATED** | `ingestion.py` passes hardcoded `positives=61, total=70` into scoring. | `backend/app/services/ingestion.py` | No dynamic lookup against VirusTotal or MalwareBazaar hash API. | Implement real VirusTotal v3 / MalwareBazaar hash lookup service returning genuine engine detection ratios. |
+| **FR-13** | Compute a 0–100 severity score per indicator from a documented, reproducible scoring model. | **REAL** | `app/services/scoring.py` implements the exact 4-factor formula (35% rep, 35% engine, 15% recency, 15% sightings). | `backend/app/services/scoring.py` | Mathematical formula is fully implemented, though caller passes hardcoded inputs during ingestion. | Keep `scoring.py` algorithm; connect real enrichment values to its input arguments. |
+| **FR-14** | Enrich indicators with geolocation and ASN/owner data for mapping and pivoting. | **PARTIAL** | `enrichment_service.py` calls `ip-api.com` with Redis cache. | `backend/app/services/enrichment_service.py`, `frontend/src/app/dashboard/analyst/page.tsx` | Endpoint is in unmounted tree; frontend hardcodes `"Frankfurt, Germany (DE)"` and `"AS13335 CLOUDFLARENET"`. | Mount enrichment route in active router; connect frontend inspector to backend response. |
+| **FR-15** | Stream new high-severity indicators and alerts to connected dashboards in real time. | **MOCK/SIMULATED** | `main.py` broadcasts hardcoded 4-element `threat_samples` every 6s on `/ws/alerts`. | `backend/app/main.py`, `frontend/src/app/dashboard/analyst/page.tsx` | WebSocket broadcasts fake synthetic threats; live feed ingestion never triggers WebSocket broadcasts. | Wire real ingestion and alert generation pipeline to publish newly ingested critical IOCs to WebSocket. |
+| **FR-16** | Correlate incoming indicators against ingested internal security events and open incidents. | **BROKEN** | `correlation_service.py` has logic matching `SecurityEvent` against `Indicator`. | `backend/app/services/correlation_service.py` | Service has import errors (`ThreatSeverity`), uses mismatched model attributes, and is not mounted in active API. | Fix model imports; mount `/api/v1/incidents/correlate-event`; trigger automated correlation during ingestion. |
+| **FR-17** | Provide a configurable alert rule engine (threshold, category, source, score) with per-user routing. | **MISSING** | No rule engine or alert rules table exists. | `backend/app/models/`, `backend/app/services/` | Alerts are generated ad-hoc or seeded; no configurable rules or routing exist. | Implement `alert_rules` model and rule-matching engine evaluating threshold, category, and assignee. |
+| **FR-18** | Manage alert lifecycle: new → acknowledged → in-progress → resolved → closed, with assignee. | **PARTIAL** | `app/routers/alerts.py` implements `PATCH /api/v1/alerts/{alert_id}` validating status transitions. | `backend/app/routers/alerts.py`, `frontend/src/app/dashboard/analyst/page.tsx` | Endpoint lacks authentication; auto-seeds mock alerts; frontend uses browser `alert()` instead of calling API. | Require JWT auth; remove auto-seeding; connect frontend Acknowledge/Assign buttons to `PATCH` endpoint. |
+| **FR-19** | Maintain an ordered, immutable incident timeline that auto-captures related indicators and actions. | **MOCK/SIMULATED** | `incidents/page.tsx` renders static HTML timeline for fake incident `INC-2026-0815`. | `frontend/src/app/dashboard/incidents/page.tsx`, `backend/app/models/incident.py` | UI is completely hardcoded to one static incident; backend `incident_timeline` table is not queried. | Mount incident routes in API; connect UI to fetch dynamic incident timeline from `/api/v1/incidents/{id}/timeline`. |
+| **FR-20** | Render a global geographic heatmap of threat origin and target activity. | **MOCK/SIMULATED** | `GlobalHeatmap.tsx` exists using Leaflet and CARTO tiles, but uses 5 hardcoded coordinates. | `frontend/src/components/GlobalHeatmap.tsx` | Component is orphaned (never imported in any page); coordinates are static. | Import `GlobalHeatmap` into Executive/Analyst view; feed it real GeoIP telemetry from enriched indicators. |
+| **FR-21** | Provide trend charts (volume over time, category breakdown, top sources, severity distribution). | **MOCK/SIMULATED** | `AnalyticsCharts.tsx` renders Recharts AreaChart & PieChart with static constants. | `frontend/src/components/AnalyticsCharts.tsx` | Component is orphaned (never imported); data is hardcoded mock constants. | Import `AnalyticsCharts` into Executive view; create backend analytics aggregation endpoints. |
+| **FR-22** | Allow users to build custom dashboards from a widget library and save layouts per user. | **MISSING** | No widget library, customizable grid, or layout persistence exists. | `frontend/src/app/dashboard/` | Feature is completely absent. | Implement drag-and-drop dashboard grid (e.g. `react-grid-layout`) with user layout storage in DB. |
+| **FR-23** | Generate scheduled and on-demand threat reports (PDF) with an executive summary and detail. | **MISSING** | Button in `executive/page.tsx` just toggles a timer state string. | `frontend/src/app/dashboard/executive/page.tsx`, `backend/app/routers/` | No PDF generation backend, no report templates, no scheduling. | Implement backend report generator (e.g., WeasyPrint / ReportLab) and expose `POST /api/v1/reports`. |
+| **FR-24** | Export indicators and intelligence as STIX 2.1 bundles and CSV for downstream tooling. | **REAL** | `backend/app/routers/export.py` generates compliant STIX 2.1 bundles and downloadable CSV. | `backend/app/routers/export.py` | Endpoints work, but lack authentication and TLP-based export filtering. | Add JWT auth and filter exported indicators based on user role and TLP clearance. |
+| **FR-25** | Provide full-text and faceted search across all indicators and events with sub-second response. | **BROKEN** | `routers/search.py` performs SQLite `LIKE` queries; `search_service.py` (ES) is unmounted. | `backend/app/routers/search.py`, `backend/app/services/search_service.py`, `docker-compose.yml` | Elasticsearch is omitted from Docker Compose; active router runs slow SQL `LIKE`; Navbar search does nothing. | Provision Elasticsearch in Docker Compose; route `/api/v1/search` to `search_service.py`; wire Navbar input. |
+| **FR-26** | Enforce role-based access control across all data and actions (see Section 11). | **REAL** | `app/core/rbac.py` enforces `RoleChecker` and `get_current_user` across all canonical `/api/v1` routes; Argon2 hashing verified; self-escalation blocked. | `backend/app/core/rbac.py`, `backend/app/api/v1/endpoints/`, `backend/tests/test_security_hardening.py` | [RESOLVED IN PHASE 1B] All protected endpoints enforce server-side RBAC and active DB user validation. | Completed in Phase 1B. Verified with 15 security test suites. |
+| **FR-27** | Write an immutable audit log entry for every authentication and state-changing action. | **PARTIAL** | Audit entries written in canonical auth, alerts, incidents, feeds, and audit endpoints. | `backend/app/api/v1/endpoints/`, `backend/app/models/audit.py` | Table lacks DB-level immutability (PostgreSQL grants pending Phase 2); runtime audit event creation is active. | Revoke DB UPDATE/DELETE grants on PostgreSQL in Phase 2. |
+| **FR-28** | Expose authenticated REST and WebSocket APIs for integration with external security tools. | **REAL** | All canonical REST endpoints require Bearer JWT. WebSocket gateway `/api/v1/ws/alerts` rejects unauthenticated handshakes with code 1008. | `backend/app/api/v1/endpoints/`, `backend/app/api/v1/endpoints/websocket.py`, `backend/app/main.py` | [RESOLVED IN PHASE 1B] Authenticated JWT validation enforced during WebSocket handshake and REST requests. | Completed in Phase 1B. |
+| **FR-29** | Provide inbound integration hooks (webhook/API) for SIEM, EDR and ticketing systems. | **MISSING** | No webhook receivers, API key authentication, or external ingestion endpoints exist. | `backend/app/` | No inbound webhook infrastructure exists. | Build `/api/v1/integrations/inbound` with API-key authentication and payload adapters. |
+| **NFR-01** | Performance: Dashboard interactive load < 2s; API p95 response < 400ms under nominal load. | **PARTIAL** | App loads fast only because it falls back to hardcoded in-memory arrays. | `frontend/src/lib/api.ts` | Not validated against real database scale or concurrent network load. | Benchmark with realistic PostgreSQL dataset (100k+ rows) and optimize queries with composite indexes. |
+| **NFR-02** | Real-time: End-to-end alert propagation (ingest → UI) < 5s via WebSocket. | **MOCK/SIMULATED** | WebSocket broadcasts static 4-item array every 6s on an independent loop. | `backend/app/main.py` | Ingested threats do not propagate to WebSocket. | Connect live ingestion pipeline to publish to Redis Pub/Sub, fanned out to active WebSockets under 5 seconds. |
+| **NFR-03** | Scalability: Sustain >= 50,000 indicator ingests/hour and >= 200 concurrent users through horizontal scaling. | **BROKEN** | Uses single-process SQLite file with `check_same_thread=False`. | `backend/app/database.py`, `docker-compose.yml` | SQLite cannot handle concurrent write transactions; no Celery/RQ worker queue exists. | Migrate to PostgreSQL connection pooling and Celery/Redis background task workers. |
+| **NFR-04** | Availability: Target 99.5% monthly availability for core API and dashboard. | **BROKEN** | No `/health` endpoint exists (returns 404); test explicitly asserts 404 is acceptable. | `backend/app/main.py`, `backend/tests/test_core.py` | Lacks health check endpoints and container readiness probes. | Implement comprehensive `/health` and `/health/ready` checking DB, Redis, and ES connectivity. |
+| **NFR-05** | Search latency: Full-text/faceted queries return < 800ms at p95 over 10M+ indexed documents. | **BROKEN** | Active search router uses SQLite `LIKE '%q%'`. | `backend/app/routers/search.py` | Unindexed SQL `LIKE` will exhaust resources and time out on large datasets; Elasticsearch is offline. | Connect Elasticsearch 8.x index with ngram and keyword mappings. |
+| **NFR-06** | Security: Data in transit over TLS 1.2+; sensitive data encrypted at rest (AES-256). | **BROKEN** | Plaintext secrets in config, Docker, and K8s; unencrypted HTTP calls to `ip-api.com`. | `backend/app/core/config.py`, `k8s/`, `backend/app/services/enrichment_service.py` | Hardcoded JWT keys; hardcoded DB passwords; no AES-256 field encryption at rest. | Move all secrets to environment variables; enforce HTTPS/TLS; implement SQLAlchemy EncryptedType for secrets. |
+| **NFR-07** | Reliability: No data loss on service restart; ingestion is idempotent and replay-safe. | **PARTIAL** | SQLite database file stored on disk; basic deduplication on ingest. | `backend/app/routers/indicators.py`, `backend/app/database.py` | Docker compose uses volume mounting `./backend:/app` without persistent named volume. | Use persistent named volume for PostgreSQL; implement idempotent upserts based on unique hash/value constraints. |
+| **NFR-08** | Maintainability: >= 80% unit-test coverage on core scoring, correlation and ingestion modules. | **BROKEN** | Only 3 test files exist; 1 is broken with `TypeError`, 1 asserts 404. Coverage is ~0%. | `backend/tests/` | Severe lack of automated tests; PRD quality gate is completely violated. | Write comprehensive unit and integration tests for ingestion, scoring, correlation, and RBAC to reach >= 80%. |
+| **NFR-09** | Usability: Primary analyst workflow (triage → enrich → escalate) completable in <= 4 clicks. | **PARTIAL** | UI layout supports rapid triage, but action buttons trigger browser `alert()` popups. | `frontend/src/app/dashboard/analyst/page.tsx` | Core workflows are simulated rather than completing real backend state changes. | Connect buttons to real backend API mutations (`PATCH /alerts/{id}`, `POST /incidents`). |
+| **NFR-10** | Observability: Structured logs, health endpoints and metrics exposed for every service. | **BROKEN** | Basic Python `print()` statements; no structured JSON logging; no `/metrics` or `/health`. | `backend/app/` | No observability infrastructure exists. | Implement `structlog`, Prometheus metrics exporter (`/metrics`), and health endpoints. |
+| **NFR-11** | Portability: Entire stack runs from a single docker-compose up locally and on Kubernetes. | **BROKEN** | `docker-compose.yml` only runs backend + frontend; PostgreSQL, ES, and Redis are missing. | `docker-compose.yml`, `k8s/` | Incomplete infrastructure definitions prevent running the full stack locally or in cloud. | Add PostgreSQL 16, Elasticsearch 8, and Redis 7 to `docker-compose.yml` and create missing K8s manifests. |
+| **NFR-12** | Compliance: Audit records retained >= 1 year; access controls support least-privilege review. | **BROKEN** | No audit retention policies; audit table is mutable; RBAC is non-functional. | `backend/app/models/`, `backend/app/routers/auth.py` | Lacks database immutability; role checks are not enforced on backend. | Restrict DB user permissions (no UPDATE/DELETE on audit table); enforce server-side RBAC. |
+
+---
+
+## 4. Architecture Audit
+
+### The Architectural Schism: `app.routers` vs `app.api.v1.endpoints`
+
+Forensic analysis of the backend file structure reveals a critical architectural defect: **two disconnected implementations of the API routers exist simultaneously**:
+
+```
+backend/app/
+├── main.py                     <-- Includes ONLY app.routers.*
+├── database.py                 <-- Bound to SQLite: sqlite:///./threatlens.db
+├── db/
+│   ├── base.py                 <-- Declarative Base 2
+│   └── session.py              <-- Bound to PostgreSQL (settings.DATABASE_URL)
+├── models/
+│   ├── indicator.py            <-- Uses app.database.Base (String PKs)
+│   ├── alert.py                <-- Uses app.db.base.Base (PostgreSQL UUID PKs)
+│   ├── incident.py             <-- Uses app.db.base.Base (PostgreSQL UUID PKs)
+│   ├── user.py                 <-- Uses app.db.base.Base (PostgreSQL UUID PKs)
+│   └── feed.py                 <-- Uses app.db.base.Base (PostgreSQL UUID PKs)
+├── routers/                    <-- ACTIVE ROUTERS (Mounted in main.py)
+│   ├── alerts.py               <-- Uses SQLite, auto-seeds mock alerts, no auth
+│   ├── auth.py                 <-- Hardcoded passwords ("threatlens123", "admin")
+│   ├── export.py               <-- Exports from SQLite
+│   ├── indicators.py           <-- Basic SQLite queries, manual feed sync
+│   └── search.py               <-- SQL LIKE queries over SQLite (NO Elasticsearch)
+└── api/v1/endpoints/           <-- DEAD / UNMOUNTED ROUTERS (Ignored by main.py)
+    ├── alerts.py               <-- Unmounted
+    ├── audit.py                <-- Unmounted (uses in-memory list!)
+    ├── auth.py                 <-- Unmounted (broken import: verify_password)
+    ├── enrichment.py           <-- Unmounted
+    ├── export.py               <-- Unmounted
+    ├── incidents.py            <-- Unmounted
+    ├── indicators.py           <-- Unmounted (broken import: IndicatorType)
+    ├── search.py               <-- Unmounted (calls search_service.py)
+    └── websocket.py            <-- Unmounted
+```
+
+1. **Active Route Tree (`backend/app/routers/`):**
+   In `backend/app/main.py`:
+   ```python
+   from app.routers import indicators, auth, export, alerts, search
+   app.include_router(indicators.router)
+   app.include_router(alerts.router)
+   app.include_router(search.router)
+   app.include_router(auth.router)
+   app.include_router(export.router)
+   ```
+   These routers import `get_db` from `app.database.py`, which defaults to local SQLite (`threatlens.db`). They contain simplistic queries, bypass all authentication, and omit incident management and enrichment routes.
+
+2. **Unmounted Route Tree (`backend/app/api/v1/endpoints/`):**
+   This tree attempts to use PostgreSQL (`app.db.session`) and services (`search_service`, `feed_service`, `audit_service`). However:
+   - It is **never registered** in `app/main.py`.
+   - It contains fatal syntax and import errors. For example:
+     - `app/api/v1/endpoints/indicators.py` imports `IndicatorType`, `ThreatSeverity`, and `IndicatorStatus` from `app.models.indicator`, none of which are defined in that file.
+     - `app/api/v1/endpoints/auth.py` imports `verify_password` and `get_password_hash` from `app.core.security`, which does not define them.
+     - `app/api/deps.py` imports `get_current_user` from `app.core.security`, but it is actually located in `app.core.rbac`.
+   - Attempting to import these files crashes Python with an `ImportError`.
+
+---
+
+## 5. Security Audit
+
+A thorough static vulnerability analysis of the codebase identified multiple critical security vulnerabilities across authentication, authorization, secret management, container hardening, and data protection:
+
+### 1. Hard-Coded Credentials & Secrets
+- **PostgreSQL Database Password:**  
+  In `backend/app/core/config.py:5`:
+  ```python
+  POSTGRES_PASSWORD: str = "threatlens_secure_password_2026"
+  ```
+  Committed in cleartext.
+- **JWT Secret Keys (Multiple Conflicting Values):**  
+  - In `backend/app/core/config.py:10`: `SECRET_KEY: str = "super_secret_jwt_key_threatlens_2026"`
+  - In `backend/app/core/security.py:4`: `SECRET_KEY = "threatlens-soc-super-secret-jwt-key-2026"`
+  - In `k8s/threatlens-cloud.yaml:21`: `JWT_SECRET: "super-secure-threatlens-production-jwt-secret-key-32bytes"`  
+  Neither backend file reads from the environment variable; both use hardcoded string literals.
+- **Hard-Coded Demo Passwords in Authentication Router:**  
+  In `backend/app/routers/auth.py:20`:
+  ```python
+  if req.password != "threatlens123" and req.password != "admin":
+  ```
+  The active authentication endpoint performs a cleartext string comparison against two hardcoded passwords. It does not perform a database lookup or verify salted password hashes.
+
+### 2. Client-Controlled Roles & Privilege Escalation
+- In `backend/app/routers/auth.py:15,33`:
+  ```python
+  class LoginRequest(BaseModel):
+      username: str
+      password: str
+      role: str = "SOC Analyst"
+  ...
+  token = create_access_token(data={"sub": req.username, "role": req.role})
+  ```
+  The user specifies their own role in the JSON login request payload, and the backend signs the JWT token with whatever role the client requested. Any unauthenticated caller can issue themselves an `Administrator` token.
+- In `frontend/src/context/RoleContext.tsx:81-93`:
+  Role state is managed entirely in browser `localStorage` and initialized to `Administrator` by default. The user can switch personas at will via a dropdown on the navigation bar with no backend authorization check.
+
+### 3. Missing Authentication & Authorization Enforcement
+- In `backend/app/routers/indicators.py`, `alerts.py`, `export.py`, and `search.py`, **not a single endpoint requires authentication**.
+- An unauthenticated external entity can:
+  - Query all indicators (`GET /api/v1/indicators`);
+  - Trigger live feed synchronization (`POST /api/v1/indicators/sync-feeds`);
+  - Query, modify, and reassign security alerts (`GET /api/v1/alerts`, `PATCH /api/v1/alerts/{id}`);
+  - Export all threat intelligence bundles (`GET /api/v1/export/stix`, `GET /api/v1/export/csv`);
+  - Search threat intelligence records (`GET /api/v1/search`);
+  - Read complete audit logs (`GET /api/v1/auth/audit-logs`).
+- The frontend never attaches an `Authorization: Bearer <token>` header to any HTTP request.
+
+### 4. Committed Databases and Runtime Artifacts
+- **Committed SQLite Database:** `backend/threatlens.db` (73,728 bytes) is committed to the repository, containing pre-populated development/test records.
+- **Committed Coverage Data:** `backend/.coverage` (53,248 bytes) is committed to git.
+- **Committed Python Bytecode:** Multiple `__pycache__` directories containing compiled `.pyc` files are committed throughout `backend/app/` and `backend/tests/`.
+
+### 5. Insecure Container & Orchestration Configuration
+- **Root Execution:** `backend/Dockerfile` runs Uvicorn as `root`. No `USER` directive is specified, contradicting README claims of "non-root container sandboxing".
+- **Hardcoded K8s Secrets:** `k8s/threatlens-cloud.yaml` contains plaintext database passwords (`threatlens123`) and JWT secret keys in the `stringData` block without encryption.
+- **Insecure CORS:** `backend/app/main.py` allows all methods and headers (`allow_methods=["*"]`, `allow_headers=["*"]`).
+
+### 6. Information Leakage & Unencrypted External Egress
+- `backend/app/services/enrichment_service.py:32` calls external IP geolocation over unencrypted HTTP: `http://ip-api.com/json/{ip_address}`. Indicator IP addresses (sensitive internal SOC telemetry) are transmitted in plaintext across the public Internet.
+
+---
+
+## 6. Data Pipeline Audit
+
+The PRD defines the core data pipeline as:
+$$\text{External Feed} \rightarrow \text{Scheduler} \rightarrow \text{Normalizer} \rightarrow \text{Deduplicator} \rightarrow \text{Enrichment} \rightarrow \text{Scoring} \rightarrow \text{Correlation} \rightarrow \text{Alert} \rightarrow \text{Database} \rightarrow \text{WebSocket} \rightarrow \text{Frontend}$$
+
+The forensic trace of each stage in the actual codebase is summarized below:
+
+```
+[1. External Feeds]   --> PARTIAL (4 real HTTP feeds; 2 static lists)
+         │
+[2. Scheduler]        --> MISSING (No Celery/beat/cron; manual sync only)
+         │
+[3. Normalizer]       --> PARTIAL (Basic dict formatting; no STIX/CSV parser)
+         │
+[4. Deduplicator]     --> PARTIAL (Drops duplicates entirely; no provenance update)
+         │
+[5. Enrichment]       --> MOCK/SIMULATED (ip-api.com unmounted; domain/hash mocked)
+         │
+[6. Scoring]          --> REAL (Algorithm in scoring.py, but receives hardcoded inputs)
+         │
+[7. Correlation]      --> BROKEN (correlation_service.py has syntax errors & unmounted)
+         │
+[8. Alert Engine]     --> MISSING (No alert_rules; seed_alert inserted if DB empty)
+         │
+[9. Database Store]   --> PARTIAL (Saved to local SQLite threatlens.db; Postgres offline)
+         │
+[10. WebSocket]       --> MOCK/SIMULATED (Emits synthetic timer items every 6s)
+         │
+[11. Frontend]        --> MOCK/SIMULATED (Falls back to localhost or static mock arrays)
+```
+
+### Forensic Pipeline Findings:
+1. **External Feeds (PARTIAL):** Feodo Tracker, URLhaus, MalwareBazaar, and ThreatFox are polled asynchronously via `httpx` in `ingestion.py`. However, AlienVault OTX and CISA KEV are static Python lists containing 2 entries each.
+2. **Scheduler (MISSING):** No background worker or cron scheduling exists. Ingestion runs only when `/api/v1/indicators/sync-feeds` is manually triggered.
+3. **Normalizer (PARTIAL):** Ingestion normalizes fields into a loose dictionary. No generic parser exists for incoming STIX 2.1 JSON or CSV feeds.
+4. **Deduplicator (PARTIAL):** In `routers/indicators.py`, if an indicator value already exists in SQLite, it is skipped. The PRD requirement to maintain a per-source provenance list (`indicator_sources`) is violated because existing indicators never receive updated provenance records.
+5. **Enrichment (MOCK/SIMULATED):** Hash lookup and domain lookup do not query external APIs; domain enrichment returns a static stub. In the frontend, `handleEnrich` creates synthetic string verdicts in client JavaScript.
+6. **Scoring (REAL / PARTIAL):** `scoring.py` computes an accurate 4-factor score, but the caller passes hardcoded inputs (e.g., `positives=56, total=70`).
+7. **Correlation (BROKEN):** `correlation_service.py` is not wired into the ingestion pipeline and is unmounted.
+8. **Alert Engine (MISSING):** Ingested indicators do not automatically generate alerts. In `routers/alerts.py`, a single mock alert is auto-seeded if the database table is empty.
+9. **Database (PARTIAL):** Data is saved into local SQLite rather than PostgreSQL.
+10. **WebSocket (MOCK/SIMULATED):** The WebSocket broadcaster in `main.py` emits random selections from `threat_samples` (e.g. `185.220.101.4`, `evil-payload-bank.xyz`) every 6 seconds on an independent background task.
+11. **Frontend (MOCK/SIMULATED):** Frontend components fall back to hardcoded arrays when backend connections fail or return empty datasets.
+
+---
+
+## 7. Authentication & RBAC Audit
+
+### Backend Evaluation
+- The active authentication router (`app/routers/auth.py`) checks:
+  ```python
+  if req.password != "threatlens123" and req.password != "admin":
+  ```
+  No cryptographic hashing (bcrypt/argon2) is executed at login.
+- Access tokens expire after 8 hours; no rotating refresh tokens are implemented.
+- No Multi-Factor Authentication (TOTP) or account lockout mechanisms exist.
+- No route in `app/routers/` enforces JWT verification dependencies.
+
+### Frontend Evaluation
+- Two conflicting `RoleContext.tsx` implementations exist:
+  - `frontend/src/context/RoleContext.tsx`
+  - `frontend/src/components/RoleContext.tsx`
+- The application uses `context/RoleContext.tsx`. Users can switch their role to any persona (`Administrator`, `Tier-2 SOC Analyst`, `Incident Response Lead`, `Threat Hunter`, `CISO (Executive)`, `Security Engineer`) via a top navigation dropdown.
+- This stores the role string in browser `localStorage`.
+- There is no login screen, no session token storage, and no backend authentication barrier.
+
+---
+
+## 8. Feed Ingestion Audit
+
+| Feed Source | Specified In PRD | Implementation Status | Implementation Details |
+| :--- | :---: | :---: | :--- |
+| **Feodo Tracker** | Yes | **REAL (Active)** | Real HTTP GET to `https://feodotracker.abuse.ch/downloads/ipblocklist.json` in `ingestion.py`. |
+| **URLhaus** | Yes | **REAL (Active)** | Real HTTP GET to `https://urlhaus.abuse.ch/downloads/json_recent/` in `ingestion.py`. |
+| **MalwareBazaar** | Yes | **REAL (Active)** | Real HTTP POST to `https://mb-api.abuse.ch/api/v1/` in `ingestion.py`. |
+| **ThreatFox** | Yes | **REAL (Active)** | Real HTTP POST to `https://threatfox-api.abuse.ch/api/v1/` in `ingestion.py`. |
+| **AlienVault OTX** | Yes | **MOCK/SIMULATED** | Hardcoded static Python list of 2 items in `ingestion.py:135`. |
+| **CISA KEV Catalog** | Yes | **MOCK/SIMULATED** | Hardcoded static Python list of 2 items in `ingestion.py:160`. |
+| **TAXII 2.1 Transport** | Yes (FR-04) | **MISSING** | No implementation exists. |
+
+---
+
+## 9. Enrichment Audit
+
+| Service | PRD Target | Status | Findings |
+| :--- | :--- | :---: | :--- |
+| **IP Geolocation & ASN** | MaxMind / ip-api | **PARTIAL** | Implemented in `enrichment_service.py` via `ip-api.com` with Redis cache. Disconnected from active routers. |
+| **AbuseIPDB (IP Reputation)** | FR-10 | **MISSING** | No AbuseIPDB API calls exist anywhere in the backend codebase. |
+| **VirusTotal (Hash/Verdict Ratio)**| FR-12 | **MISSING** | No VirusTotal API client exists; engine ratios are hardcoded during ingestion. |
+| **Domain Analysis (WHOIS/RDAP)** | FR-11 | **MOCK/SIMULATED** | `get_domain_enrichment` returns hardcoded dummy status `{ "status": "Enriched" }`. |
+| **Frontend Enrichment Drawer** | Section 12.2 | **MOCK/SIMULATED** | `handleEnrich()` in `analyst/page.tsx` sets synthetic strings locally in React state. |
+
+---
+
+## 10. Scoring Audit
+
+Two divergent scoring modules exist in the codebase:
+
+1. **`backend/app/services/scoring.py` (Active):**
+   Implements the PRD specification:
+   $$\text{Score} = 0.35 \times \text{Reputation} + 0.35 \times \left(\frac{\text{Positives}}{\text{Total}} \times 100\right) + 0.15 \times \text{Recency} + 0.15 \times \text{Sightings}$$
+   The algorithm itself is mathematically sound and bounded between 0 and 100. However, callers supply synthetic constant arguments rather than live telemetry.
+
+2. **`backend/app/services/scoring_service.py` (Unmounted):**
+   Implements an alternative formula based on source reliability weights, sighting multipliers, and a 30-day step decay. This module is used only by the unmounted `v1/endpoints/indicators.py` file and has a broken unit test.
+
+---
+
+## 11. Correlation Audit
+
+- **Specification:** PRD FR-16 requires automated correlation of incoming indicators against ingested internal security events (`security_events` table) and open incidents.
+- **Backend Status (BROKEN):** `backend/app/services/correlation_service.py` contains `correlate_and_create_incident()`. However:
+  - It imports non-existent symbols (`from app.models.indicator import ThreatSeverity`).
+  - It expects `Indicator.severity` and `Indicator.threat_score`, which do not exist on the active `Indicator` model.
+  - It is not invoked during feed ingestion.
+- **Frontend Status (MOCK/SIMULATED):** The Incident Response dashboard (`frontend/src/app/dashboard/incidents/page.tsx`) renders a static mock incident `INC-2026-0815` with hardcoded timeline steps (`18:42:10 UTC`, `18:42:15 UTC`).
+
+---
+
+## 12. Alert & Incident Audit
+
+- **Alert Lifecycle (FR-18):** `backend/app/routers/alerts.py` implements lifecycle transitions: `new -> acknowledged -> in_progress -> resolved -> closed`.
+  - State validation works correctly against `valid_states`.
+  - However, the endpoint has no authentication, allowing anyone to modify alert states.
+  - The alert queue auto-seeds a hardcoded Emotet alert (`185.220.101.4`) if the database is empty.
+  - The frontend button for "Acknowledge" executes a browser `alert(...)` popup rather than calling the API.
+- **Incident Management (FR-19):** `backend/app/api/v1/endpoints/incidents.py` defines incident timeline querying and status updates, but is not mounted in `main.py`. The frontend renders static HTML for incident `INC-2026-0815`.
+
+---
+
+## 13. Dashboard Audit
+
+| Dashboard | Target Persona | PRD Requirements | Implementation Status | Findings |
+| :--- | :--- | :--- | :---: | :--- |
+| **Home Hub** | All | System overview, telemetry stats, persona quick-launch | **PARTIAL** | Fully styled and responsive. Telemetry numbers (48,920 IOCs, 12/12 feeds) are hardcoded static numbers. |
+| **SOC Analyst** | Priya Nair | Prioritised queue, one-click enrichment, live counters | **PARTIAL / MOCK** | Shows IOC table and drawer. Enrichment is client-side synthetic data; acknowledge button uses browser `alert()`. |
+| **Executive View**| Rachel Adeyemi | Risk score, 30-day trend, alert throughput, adversary volume | **MOCK/SIMULATED** | 100% static HTML and React state. KPI cards, top adversaries, and throughput bars are hardcoded numbers. |
+| **Incidents & IR** | Daniel Okafor | Incident timeline, containment checklist, report export | **MOCK/SIMULATED** | Hardcoded to single fake incident `INC-2026-0815`. Timeline and checklist are static HTML elements. |
+| **Threat Hunting**| Mei Lin Tan | Full-text facets, ATT&CK heatmap, relationship graph | **MOCK/SIMULATED** | Hardcoded list of 5 MITRE techniques; 2 static saved hunts; indicator relationship graph is completely missing. |
+
+### Orphaned Components Audit
+- `frontend/src/components/GlobalHeatmap.tsx`: A functional Leaflet CARTO map with 5 hardcoded city coordinates. **Never imported in any dashboard page.**
+- `frontend/src/components/AnalyticsCharts.tsx`: A functional Recharts time-series area chart and pie chart with static data. **Never imported in any dashboard page.**
+- `frontend/src/components/AttackHeatmap.tsx`: A CSS progress-bar list of 5 countries. **Never imported in any dashboard page.**
+- `frontend/src/components/analyst/AlertQueue.tsx`: An alert triage table with mock alerts. **Never imported in any dashboard page.**
+
+---
+
+## 14. Search Audit
+
+- **Specification:** PRD FR-25 & NFR-05 require sub-second full-text and faceted search across indicators and events over Elasticsearch 8.x.
+- **Backend Status (BROKEN / PARTIAL):**
+  - `backend/app/services/search_service.py` contains Elasticsearch connection logic, index mapping definitions, and query builder logic.
+  - However, `search_service.py` is only referenced by the unmounted `app/api/v1/endpoints/search.py`.
+  - The active router (`app/routers/search.py`) runs SQL `LIKE` queries against SQLite:
+    ```python
+    or_(
+        Indicator.value.ilike(f"%{q}%"),
+        Indicator.tags.ilike(f"%{q}%"),
+        Indicator.mitre_technique.ilike(f"%{q}%")
+    )
+    ```
+  - Facet counts are computed by iterating over the SQLite query results in memory.
+  - Elasticsearch is not included in `docker-compose.yml`.
+- **Frontend Status (MOCK/SIMULATED):**
+  - The search input in `Navbar.tsx` only updates local React state (`searchVal`). It has no submit handler, does not redirect to search results, and executes no API calls.
+  - The analyst triage table implements filtering on client-side state via `Array.prototype.filter()`.
+
+---
+
+## 15. STIX & Reporting Audit
+
+- **STIX 2.1 Export (FR-24):** **REAL.** `backend/app/routers/export.py` queries active indicators from the database and constructs valid STIX 2.1 JSON bundle objects with standard indicator patterns (`[ipv4-addr:value = ...]`, `[domain-name:value = ...]`, `[url:value = ...]`, `[file:hashes.'SHA-256' = ...]`).
+- **CSV Export (FR-24):** **REAL.** `backend/app/routers/export.py` generates downloadable CSV files with standard headers (`ID`, `Value`, `Type`, `Severity_Score`, `Confidence`, `TLP`, `MITRE_Technique`, `Tags`, `First_Seen`).
+- **PDF Report Generation (FR-23):** **MISSING.** No PDF generation library (such as ReportLab or WeasyPrint) is installed. The report button in `executive/page.tsx` merely sets a 3-second boolean state `scheduled: true`.
+
+---
+
+## 16. Database Audit
+
+- **Specification:** PRD Section 9 designates PostgreSQL 16 as the authoritative system of record.
+- **Current Runtime Status:** The running application uses an embedded **SQLite** database (`threatlens.db`), which is committed to git.
+- **Schema Divergence:**
+  - Alembic migration `2de275776032_init_fresh_schema_with_auth_and_.py` creates `audit_log`, `feeds`, `indicators`, and `users`.
+  - It does NOT create `alerts`, `incidents`, `incident_timeline`, `security_events`, `indicator_sources`, `enrichments`, `indicator_relationships`, or `attack_techniques`.
+  - In `backend/app/models/indicator.py`, models use `app.database.Base` with `String(36)` primary keys for SQLite compatibility.
+  - In `backend/app/models/alert.py`, `incident.py`, `user.py`, and `feed.py`, models use `app.db.base.Base` with PostgreSQL `UUID(as_uuid=True)` dialect types.
+  - Two incompatible `Alert` models and two incompatible `AuditLog` models exist simultaneously.
+
+---
+
+## 17. Elasticsearch Audit
+
+- **Elasticsearch Client:** `backend/app/services/search_service.py` defines an Elasticsearch client pointing to `http://localhost:9200`.
+- **Index Initialization:** Mapping includes `value`, `type`, `source`, `severity`, `status`, `threat_score`, `confidence`, `tags`, and `created_at`.
+- **Runtime Disconnect:**
+  - `docker-compose.yml` does not spin up an Elasticsearch container.
+  - The active router (`app/routers/search.py`) does not call `search_service.py`.
+  - `test_search_service.py` only verifies that when Elasticsearch is offline, the service falls back to returning an empty array.
+
+---
+
+## 18. Redis Audit
+
+- **Redis Client:** `backend/app/services/enrichment_service.py` connects to Redis at `host="localhost", port=6379`.
+- **Caching Logic:** Evaluates `cache_key = f"enrichment:ip:{ip_address}"` with a 3600-second TTL.
+- **Runtime Disconnect:**
+  - `docker-compose.yml` does not contain a Redis service.
+  - Redis connection is wrapped in a silent `try...except` returning `None`, so failures silently degrade to un-cached external API calls.
+  - Redis Pub/Sub for real-time WebSocket event fanout (PRD Section 8.1, 15) is completely unimplemented. The WebSocket manager uses a single in-process Python list.
+
+---
+
+## 19. Docker Audit
+
+- **`docker-compose.yml`:**
+  ```yaml
+  version: '3.8'
+  services:
+    backend:
+      build: { context: ./backend, dockerfile: Dockerfile }
+      ports: ["8000:8000"]
+      environment:
+        - DATABASE_URL=sqlite:///./threatlens.db
+      volumes:
+        - ./backend:/app
+    frontend:
+      build: { context: ./frontend, dockerfile: Dockerfile }
+      ports: ["3000:3000"]
+      environment:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+      depends_on: [backend]
+  ```
+  **Deficiencies:**
+  1. `DATABASE_URL` is set to SQLite.
+  2. No `postgres`, `elasticsearch`, `redis`, `worker`, or `scheduler` containers exist.
+  3. Binds `./backend:/app` directly into container filesystem.
+- **`backend/Dockerfile`:** Runs as `root`. Does not create or switch to a non-privileged user.
+- **`frontend/Dockerfile`:** Minimal build file; lacks multi-stage production optimization.
+
+---
+
+## 20. Kubernetes Audit
+
+- **`k8s/threatlens-deployment.yaml`:**
+  - Configures 2 replicas for `threatlens-backend` and `threatlens-frontend`.
+  - Configures `DATABASE_URL` pointing to `postgres-service:5432` with cleartext password `threatlens123`.
+  - Sets `NEXT_PUBLIC_API_URL` to `http://localhost:8000`. In a Kubernetes deployment, client browsers outside the cluster will attempt to reach `localhost:8000` rather than the public ingress or domain, causing API failures.
+  - Points to `postgres-service`, `redis-service`, and `elasticsearch-service`, none of which are defined in the Kubernetes manifests. Applying these manifests results in CrashLoopBackOff.
+- **`k8s/threatlens-cloud.yaml`:**
+  - Defines ConfigMap, cleartext Secret, HPA (2 to 10 replicas), and Ingress.
+  - Ingress routes host `threatlens.local` with `/api` and `/` paths.
+  - Lacks WebSocket proxying annotations (`proxy-read-timeout`, `proxy-send-timeout`), causing WebSocket connections to terminate prematurely through NGINX Ingress.
+
+---
+
+## 21. Testing & CI/CD Audit
+
+### Backend Test Audit
+The backend test directory contains only 3 test files:
+
+1. **`backend/tests/test_core.py`:**
+   ```python
+   def test_health_check():
+       response = client.get("/health")
+       assert response.status_code in [200, 404]
+   ```
+   The backend does not implement `/health` (it returns 404). The test author masked this failure by asserting `status_code in [200, 404]`.
+2. **`backend/tests/test_scoring.py`:**
+   ```python
+   def test_scoring_basic():
+       score = calculate_ioc_severity({"reputation": 80, "confidence": 90})
+       assert 0 <= score <= 100
+   ```
+   **Fatal Failure:** `calculate_ioc_severity` requires `confidence: int, source: str` as positional parameters. Passing a dictionary as the first parameter causes a `TypeError: missing 1 required positional argument: 'source'`. Additionally, the function returns a dictionary `{"score": ..., "severity": ...}`, so `0 <= score <= 100` throws `TypeError: '<=' not supported between instances of 'int' and 'dict'`. This test fails immediately when executed.
+3. **`backend/tests/test_search_service.py`:**
+   Tests only that `search_indicators_es` returns an empty array when Elasticsearch is unreachable.
+
+### Test Coverage Assessment
+- Unit-test coverage on core scoring, correlation, and ingestion is under **5%** (far below the PRD NFR-08 target of **>= 80%**).
+- Zero integration tests exist.
+- Zero frontend tests (Jest/React Testing Library) exist.
+- Zero end-to-end tests (Playwright/Cypress) exist.
+
+### CI/CD Pipeline Audit
+- The project `README.md` includes a badge:
+  `[![CI/CD Pipeline](https://github.com/Halanaaz1401/threatlens/actions/workflows/ci.yml/badge.svg)]...`
+- However, **no `.github/workflows/ci.yml` or `.github/` directory exists in the repository**. The CI/CD pipeline is non-existent.
+
+---
+
+## 22. Critical Blockers
+
+These issues completely prevent the platform from operating as specified in the PRD and must be resolved before any production deployment:
+
+1. **Dual Router Split & Unmounted Code:** The active backend mounts `app.routers` (SQLite, unauthenticated) and ignores `app.api.v1.endpoints`. The `v1` endpoints cannot compile due to missing imports (`IndicatorType`, `ThreatSeverity`, `verify_password`).
+2. **Missing Core Infrastructure:** PostgreSQL, Elasticsearch, and Redis are absent from `docker-compose.yml` and Kubernetes manifests. The running application is locked to SQLite with in-memory state.
+3. **Synthetic WebSocket Broadcaster:** Real-time threat alerts are completely fake, generated by an `asyncio` loop picking from 4 hardcoded samples rather than reflecting live ingestion or correlation.
+4. **Hardcoded Secrets & Zero Backend Authentication [RESOLVED IN PHASE 1B]:** Database user lookup, Argon2id hashing, environment secret configuration, server-side RBAC, and JWT validation enforced across all endpoints and WebSocket gateways.
+5. **Hardcoded Client-Side Fallback:** Frontend makes hardcoded requests to `http://127.0.0.1:8000` and immediately falls back to static mock arrays, hiding backend state from remote users.
+
+---
+
+## 23. High Priority Fixes
+
+1. **Database Schema Unification & PostgreSQL Migration:** Consolidate declarative bases into a single SQLAlchemy Base; create Alembic migrations for all 13 core tables specified in PRD Section 9.1; update `database.py` to use PostgreSQL exclusively.
+2. **Implement Server-Side RBAC Enforcement [COMPLETED IN PHASE 1B]:** Wired `get_current_user` and `RoleChecker` from `app.core.rbac` into all canonical API endpoints; replaced demo bypass with database user query and Argon2 password verification; blocked client-side privilege escalation.
+3. **Connect Elasticsearch to Search Router:** Add Elasticsearch 8.x to `docker-compose.yml`; update `app/routers/search.py` to execute full-text and faceted queries against Elasticsearch index mappings.
+4. **Wire WebSocket to Redis Pub/Sub:** Implement Redis Pub/Sub event bus so that when live ingestion or correlation generates a high-severity indicator or alert, it is broadcast to connected WebSocket clients in real time (< 5 seconds).
+5. **Fix Frontend API Client:** Update `frontend/src/lib/api.ts` and all dashboard fetch calls to read `NEXT_PUBLIC_API_URL` from the environment; pass Bearer tokens in headers; remove static fallback arrays so errors are handled properly.
+6. **Fix Broken Backend Tests:** Rewrite `test_scoring.py` with valid arguments and assertions; implement genuine `/health` endpoint so `test_core.py` passes legitimately; add unit tests for `scoring.py` and `ingestion.py`.
+
+---
+
+## 24. Medium Priority Fixes
+
+1. **Activate Orphaned Visual Components:** Import `GlobalHeatmap.tsx` and `AnalyticsCharts.tsx` into the Executive and Analyst dashboards; connect them to backend aggregation endpoints rather than static constants.
+2. **Implement Real AlienVault OTX & CISA KEV Ingestion:** Replace hardcoded static lists in `ingestion.py` with HTTP client calls to the official OTX DirectConnect API and CISA KEV JSON catalog.
+3. **Fix Provenance Deduplication:** In `routers/indicators.py`, when an existing indicator is encountered during feed sync, record a new row in `indicator_sources` with current timestamp and source confidence instead of skipping.
+4. **Implement Real Domain & Hash Enrichment:** Replace dummy stubs in `enrichment_service.py` with real WHOIS/RDAP and VirusTotal v3 lookup routines.
+5. **Implement Real Incident Timeline & Correlation:** Repair `correlation_service.py` models and wire incoming internal security events to dynamically generate incidents and timeline records.
+6. **Create CI/CD Pipeline:** Create `.github/workflows/ci.yml` with linting (flake8/eslint), type checking (mypy/tsc), unit tests (pytest), and Docker build validation.
+
+---
+
+## 25. Low Priority Fixes
+
+1. **Clean Committed VCS Artifacts:** Remove `backend/threatlens.db`, `backend/.coverage`, and all `__pycache__` directories from git history and add them strictly to `.gitignore`.
+2. **Container Security Hardening:** Add a non-root system user (`threatlens:threatlens`) to `backend/Dockerfile` and execute with `USER threatlens`.
+3. **Kubernetes Ingress & WebSocket Annotations:** Add proper NGINX Ingress annotations for WebSocket support and TLS termination with Let's Encrypt.
+4. **Remove Redundant Dependencies:** Clean duplicate entries in `backend/requirements.txt` (duplicate `fastapi`, `uvicorn`, `pydantic`, `python-jose`, `httpx`).
+5. **Connect Global Search in Navigation Bar:** Wire the search input in `Navbar.tsx` to redirect to `/dashboard/hunting` or trigger a global search dropdown against `/api/v1/search`.
+
+---
+
+## 26. Recommended Completion Order
+
+To bring ThreatLens from its current partially-simulated state to full PRD compliance without breaking existing working functionality, follow this phased execution plan:
+
+```mermaid
+graph TD
+    P1[Phase 1: Foundation & Security Hardening] --> P2[Phase 2: Data Stores & Ingestion Pipeline]
+    P2 --> P3[Phase 3: Real-Time Engine & Live WebSockets]
+    P3 --> P4[Phase 4: Dashboard Integration & Real Telemetry]
+    P4 --> P5[Phase 5: Search, Correlation & Advanced Features]
+    P5 --> P6[Phase 6: Testing, CI/CD & Production Deployment]
+```
+
+### Phase 1: Foundation & Security Hardening
+1. Unify the database models: eliminate duplicate bases and merge `models/` into a single consistent schema using PostgreSQL UUIDs and types.
+2. Fix all syntax and import errors in `backend/app/services/` and `app/api/v1/endpoints/`.
+3. Move all secrets (JWT secret, DB credentials) to environment variables; generate secure random defaults.
+4. Implement secure authentication: verify bcrypt password hashes against the `users` table; issue short-lived JWT access tokens and refresh tokens.
+5. Apply server-side RBAC dependencies (`require_roles`) across all API routes.
+6. Clean git repository of committed SQLite databases, `.coverage`, and `.pyc` files.
+
+### Phase 2: Data Stores & Ingestion Pipeline
+1. Update `docker-compose.yml` to spin up PostgreSQL 16, Elasticsearch 8.x, and Redis 7.
+2. Run Alembic migrations to generate all 13 core PRD tables in PostgreSQL.
+3. Update `ingestion.py` to fetch live data for all 6 feeds (integrate real OTX and CISA KEV APIs).
+4. Implement canonical upsert and provenance tracking in `indicator_sources`.
+5. Wire real enrichment inputs (reputation, detection ratios, recency) into the `scoring.py` engine.
+
+### Phase 3: Real-Time Engine & Live WebSockets
+1. Implement Redis Pub/Sub event bus in `backend/app/core/websocket.py`.
+2. Connect ingestion and scoring pipeline to publish newly ingested critical IOCs to Redis.
+3. Remove the simulated hardcoded timer broadcaster in `main.py`; have WebSocket workers consume live events from Redis.
+4. Implement real alert rule evaluation (`alert_rules`) that creates database alerts and publishes them to the WebSocket stream.
+
+### Phase 4: Dashboard Integration & Real Telemetry
+1. Update frontend `lib/api.ts` to use `NEXT_PUBLIC_API_URL` and support authentication headers.
+2. Connect the SOC Analyst Triage Queue to live backend indicators and alerts.
+3. Wire the "Acknowledge" and "Assign" buttons to execute `PATCH /api/v1/alerts/{id}`.
+4. Import and wire `GlobalHeatmap.tsx` and `AnalyticsCharts.tsx` into the Executive and Analyst views with dynamic backend API data.
+5. Build an authentication login screen and session provider in the frontend.
+
+### Phase 5: Search, Correlation & Advanced Features
+1. Project all created/updated indicators into Elasticsearch 8.x using `search_service.py`.
+2. Connect `Navbar.tsx` and `/api/v1/search` to Elasticsearch multi-match and aggregation queries.
+3. Wire internal security event ingestion (`/api/v1/incidents/correlate-event`) to automatically create incidents and timeline entries upon IOC matches.
+4. Implement on-demand executive PDF report generation using WeasyPrint or ReportLab.
+
+### Phase 6: Testing, CI/CD & Production Deployment
+1. Fix existing broken tests and write comprehensive unit tests for ingestion, scoring, and RBAC to reach >= 80% coverage.
+2. Build integration tests using `testcontainers` for PostgreSQL, Elasticsearch, and Redis.
+3. Create `.github/workflows/ci.yml` running linting, type checks, unit tests, and Docker builds.
+4. Update Kubernetes deployment manifests with StatefulSets or managed cloud database references, proper ingress routing, and WebSocket support.

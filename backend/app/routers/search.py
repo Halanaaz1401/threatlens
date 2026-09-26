@@ -1,3 +1,7 @@
+"""
+DEPRECATED: Legacy router replaced by app.api.v1.endpoints.search in Phase 1A.
+Retained for historical audit reference; not mounted in canonical app.main.
+"""
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session

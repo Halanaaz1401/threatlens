@@ -1,3 +1,7 @@
+"""
+DEPRECATED: Legacy router replaced by app.api.v1.endpoints.export in Phase 1A.
+Retained for historical audit reference; not mounted in canonical app.main.
+"""
 import uuid
 import io
 import csv

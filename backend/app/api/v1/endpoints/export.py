@@ -5,16 +5,23 @@ import csv
 import io
 from app.db.session import get_db
 from app.models.indicator import Indicator
+from app.models.user import User
+from app.core.rbac import require_authenticated_user
 
 router = APIRouter()
 
 @router.get("/stix")
-def export_stix_bundle(db: Session = Depends(get_db)):
+def export_stix_bundle(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
+):
+    """Export threat indicators as a STIX 2.1 JSON bundle (Authenticated)."""
     indicators = db.query(Indicator).limit(100).all()
     
     stix_objects = []
     for ind in indicators:
-        pattern_val = f"[{ind.type.lower()}:value = '{ind.value}']"
+        type_str = str(ind.type.value if hasattr(ind.type, "value") else ind.type).lower()
+        pattern_val = f"[{type_str}:value = '{ind.value}']"
         stix_objects.append({
             "type": "indicator",
             "spec_version": "2.1",
@@ -45,7 +52,11 @@ def export_stix_bundle(db: Session = Depends(get_db)):
     )
 
 @router.get("/csv")
-def export_csv(db: Session = Depends(get_db)):
+def export_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
+):
+    """Export threat indicators in CSV format (Authenticated)."""
     indicators = db.query(Indicator).limit(500).all()
     
     output = io.StringIO()

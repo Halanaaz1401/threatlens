@@ -16,6 +16,13 @@ from app.services.audit_service import log_action
 from app.services.scoring_service import calculate_ioc_severity
 from app.services.search_service import index_indicator
 
+from app.core.rbac import (
+    require_authenticated_user,
+    require_analyst,
+    require_engineer,
+)
+from app.models.user import User
+
 router = APIRouter()
 
 # Schemas
@@ -38,9 +45,10 @@ def get_indicators(
     severity: Optional[ThreatSeverity] = None,
     status: Optional[IndicatorStatus] = None,
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
 ):
-    """Filter and search indicators with pagination (PostgreSQL)."""
+    """Filter and search indicators with pagination."""
     query = db.query(Indicator)
 
     if type:
@@ -52,11 +60,43 @@ def get_indicators(
     if search:
         query = query.filter(Indicator.value.ilike(f"%{search}%"))
 
-    return query.offset(skip).limit(limit).all()
+    items = query.order_by(Indicator.last_seen.desc()).offset(skip).limit(limit).all()
+    serialized = [
+        {
+            "id": str(i.id),
+            "value": i.value,
+            "type": str(i.type.value if hasattr(i.type, "value") else i.type),
+            "source": i.source,
+            "confidence": i.confidence,
+            "threat_score": i.threat_score,
+            "severity_score": i.threat_score,
+            "severity": str(i.severity.value if hasattr(i.severity, "value") else i.severity),
+            "status": str(i.status.value if hasattr(i.status, "value") else i.status),
+            "sightings": i.sightings,
+            "tags": i.tags or [],
+            "context": i.context or {},
+            "mitre_technique": (i.context or {}).get("mitre_technique", "T1071.001"),
+            "first_seen": i.first_seen.isoformat() if i.first_seen else None,
+            "last_seen": i.last_seen.isoformat() if i.last_seen else None,
+            "created_at": i.first_seen.isoformat() if i.first_seen else None,
+            "updated_at": i.last_seen.isoformat() if i.last_seen else None,
+        }
+        for i in items
+    ]
+    return {
+        "status": "success",
+        "data": serialized,
+        "total": len(serialized)
+    }
 
 @router.post("/create")
-def create_manual_ioc(ioc_in: IOCCreate, request: Request, db: Session = Depends(get_db)):
-    """Manually add an IOC with dynamic threat scoring & Elasticsearch projection."""
+def create_manual_ioc(
+    ioc_in: IOCCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst)
+):
+    """Manually add an IOC with dynamic threat scoring & Elasticsearch projection (Analyst+)."""
     existing = db.query(Indicator).filter(Indicator.value == ioc_in.value).first()
     if existing:
         raise HTTPException(status_code=400, detail="Indicator already exists in the system")
@@ -108,6 +148,9 @@ def create_manual_ioc(ioc_in: IOCCreate, request: Request, db: Session = Depends
         log_action(
             db,
             action="IOC_MANUAL_CREATE",
+            actor=current_user.email,
+            user_id=current_user.id,
+            target_resource=f"indicator:{new_ioc.id}",
             details={"ioc_id": str(new_ioc.id), "value": new_ioc.value, "severity": str(new_ioc.severity)},
             request=request
         )
@@ -118,12 +161,13 @@ def create_manual_ioc(ioc_in: IOCCreate, request: Request, db: Session = Depends
 
 @router.patch("/{indicator_id}/status")
 def update_ioc_status(
-    indicator_id: uuid.UUID,
+    indicator_id: str,
     status_update: IOCStatusUpdate,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst)
 ):
-    """Update IOC status and update Elasticsearch projection."""
+    """Update IOC status and update Elasticsearch projection (Analyst+)."""
     ioc = db.query(Indicator).filter(Indicator.id == indicator_id).first()
     if not ioc:
         raise HTTPException(status_code=404, detail="Indicator not found")
@@ -154,6 +198,9 @@ def update_ioc_status(
         log_action(
             db,
             action="IOC_STATUS_UPDATE",
+            actor=current_user.email,
+            user_id=current_user.id,
+            target_resource=f"indicator:{ioc.id}",
             details={"ioc_id": str(ioc.id), "old_status": old_status, "new_status": str(ioc.status)},
             request=request
         )
@@ -162,8 +209,14 @@ def update_ioc_status(
 
     return {"message": "Status updated successfully", "indicator": ioc}
 
+@router.post("/sync-feeds")
 @router.post("/fetch-feed")
-async def trigger_feed_ingestion(source: Optional[str] = "all", request: Request = None, db: Session = Depends(get_db)):
+async def trigger_feed_ingestion(
+    source: Optional[str] = "all",
+    request: Request = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_engineer)
+):
     """
     Ingest live threat intelligence feeds (URLhaus, ThreatFox, Feodo Tracker, MalwareBazaar).
     """

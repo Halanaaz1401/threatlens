@@ -1,10 +1,8 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Enum, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, SmallInteger, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-
 from app.db.base import Base
 
 class AlertStatus(str, enum.Enum):
@@ -22,22 +20,30 @@ class AlertSeverity(str, enum.Enum):
 
 class Alert(Base):
     __tablename__ = "alerts"
+    __table_args__ = {"extend_existing": True}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    alert_code = Column(String(50), nullable=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(String(1000), nullable=True)
-    severity = Column(Enum(AlertSeverity), default=AlertSeverity.HIGH, nullable=False)
-    status = Column(Enum(AlertStatus), default=AlertStatus.NEW, nullable=False)
+    severity = Column(String(50), default="HIGH", nullable=False, index=True)
+    severity_score = Column(SmallInteger, default=70)
+    status = Column(String(50), default="new", nullable=False, index=True)
     
-    # Associated indicator (optional link)
-    indicator_id = Column(UUID(as_uuid=True), ForeignKey("indicators.id", ondelete="SET NULL"), nullable=True)
+    # Associated indicator link
+    indicator_id = Column(String(36), ForeignKey("indicators.id", ondelete="SET NULL"), nullable=True)
+    indicator_value = Column(String(500), nullable=True)
     
-    # Context, matched rule name, and metadata
+    # Context, matched rule name, assignee, telemetry
     rule_name = Column(String(100), default="DEFAULT_SEVERITY_THRESHOLD", nullable=False)
-    assignee = Column(String(100), nullable=True)
+    assignee = Column(String(100), nullable=True, default="Priya Nair")
+    source = Column(String(100), default="ThreatLens Stream")
+    mitre_technique = Column(String(50), default="T1071")
+    internal_sightings_count = Column(SmallInteger, default=1)
+    internal_host = Column(String(100), default="host-wkstn-04.corp.local")
     context = Column(JSON, default=dict, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    indicator = relationship("Indicator", lazy="joined")
+    indicator = relationship("Indicator", back_populates="alerts", foreign_keys=[indicator_id], lazy="joined")

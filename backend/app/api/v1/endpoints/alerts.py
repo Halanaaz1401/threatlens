@@ -1,4 +1,3 @@
-import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Request
 from sqlalchemy.orm import Session
@@ -6,9 +5,15 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.models.alert import Alert, AlertStatus, AlertSeverity
+from app.models.user import User
 from app.core.websocket import ws_manager
+from app.core.rbac import (
+    require_authenticated_user,
+    require_analyst,
+    get_ws_current_user,
+)
+from app.services.audit_service import log_action
 
-# Yeh line zaroori hai:
 router = APIRouter()
 
 class AlertStatusUpdate(BaseModel):
@@ -21,9 +26,10 @@ def get_alerts(
     limit: int = 50,
     status: Optional[AlertStatus] = None,
     severity: Optional[AlertSeverity] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user)
 ):
-    """Retrieve all alerts with status and severity filters (PRD Section 10.2)."""
+    """Retrieve all alerts with status and severity filters (Authenticated)."""
     query = db.query(Alert)
     if status:
         query = query.filter(Alert.status == status)
@@ -34,15 +40,19 @@ def get_alerts(
 
 @router.patch("/{alert_id}")
 def update_alert_lifecycle(
-    alert_id: uuid.UUID,
+    alert_id: str,
     payload: AlertStatusUpdate,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst)
 ):
-    """Manage alert lifecycle state: NEW -> ACKNOWLEDGED -> IN_PROGRESS -> RESOLVED -> CLOSED."""
+    """Manage alert lifecycle state: NEW -> ACKNOWLEDGED -> IN_PROGRESS -> RESOLVED -> CLOSED (Analyst+)."""
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
+
+    old_status = alert.status.value if hasattr(alert.status, "value") else str(alert.status)
+    new_status = payload.status.value if hasattr(payload.status, "value") else str(payload.status)
 
     alert.status = payload.status
     if payload.assignee:
@@ -50,11 +60,29 @@ def update_alert_lifecycle(
     
     db.commit()
     db.refresh(alert)
+
+    # Audit log alert lifecycle change
+    log_action(
+        db,
+        action="ALERT_STATUS_UPDATE",
+        actor=current_user.email,
+        user_id=current_user.id,
+        target_resource=f"alert:{alert.id}",
+        details={"old_status": old_status, "new_status": new_status, "assignee": alert.assignee},
+        request=request
+    )
+
     return alert
 
 @router.websocket("/ws")
-async def websocket_alerts_stream(websocket: WebSocket):
-    """WebSocket stream for real-time alert broadcasts (PRD Section 10.3)."""
+async def websocket_alerts_stream(
+    websocket: WebSocket,
+    user: Optional[User] = Depends(get_ws_current_user)
+):
+    """Protected WebSocket stream for real-time alert broadcasts (Requires valid JWT)."""
+    if user is None:
+        return
+
     await ws_manager.connect(websocket)
     try:
         while True:

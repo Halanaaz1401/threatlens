@@ -1,41 +1,59 @@
-import asyncio
-import random
-from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+from typing import Dict, Any, Optional
+
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import indicators, auth, export, alerts, search
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+
+from app.database import engine, get_db, init_db
+from app.db.base import Base
+import app.models  # Ensures all canonical models are registered with Base metadata
+from app.api.v1.api import api_router
+from app.core.config import settings
 from app.core.websocket import ws_manager
+from app.core.rbac import get_ws_current_user
+from app.models.user import User
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup table verification and graceful shutdown."""
+    # Ensure database tables and columns exist
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Warning: Database initialization error: {e}")
+    yield
 
 app = FastAPI(
     title="ThreatLens Enterprise CTI API",
-    description="Cyber Threat Intelligence & Incident Correlation Backend",
-    version="1.0.0"
+    description="Cyber Threat Intelligence & Incident Correlation Backend (Phase 1B Hardened)",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# Proper CORS for Next.js (Localhost & 127.0.0.1 support)
+# Proper CORS for Next.js frontend & production deployment (No wildcard origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
-    ],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
 )
 
-# Include All REST Routers
-app.include_router(indicators.router)
-app.include_router(alerts.router)
-app.include_router(search.router)
-app.include_router(auth.router)
-app.include_router(export.router)
+# Canonical API Router Tree (Phase 1A/1B)
+app.include_router(api_router, prefix="/api/v1")
 
-# Real-Time alerts.stream WebSocket Gateway
+# Direct WebSocket Gateway for backwards-compatibility (Secured with JWT)
 @app.websocket("/ws/alerts")
-async def alerts_websocket_endpoint(websocket: WebSocket):
+async def root_websocket_alerts_endpoint(
+    websocket: WebSocket,
+    user: Optional[User] = Depends(get_ws_current_user)
+):
+    """Secured root WebSocket gateway alias targeting canonical alert stream."""
+    if user is None:
+        return
     await ws_manager.connect(websocket)
     try:
         while True:
@@ -43,38 +61,33 @@ async def alerts_websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
 
-# Background Live Alert Broadcaster
-@app.on_event("startup")
-async def start_alert_broadcaster():
-    async def simulate_live_threat_feed():
-        threat_samples = [
-            {"val": "185.220.101.4", "type": "ip", "score": 92, "source": "Feodo C2", "mitre": "T1071.001"},
-            {"val": "http://evil-payload-bank.xyz/drop.exe", "type": "url", "score": 88, "source": "URLhaus", "mitre": "T1566.002"},
-            {"val": "45.142.214.22", "type": "ip", "score": 95, "source": "AlienVault OTX", "mitre": "T1090.003"},
-            {"val": "CVE-2024-21413", "type": "cve", "score": 98, "source": "CISA KEV", "mitre": "T1190"}
-        ]
-        while True:
-            await asyncio.sleep(6)
-            if ws_manager.active_connections:
-                sample = random.choice(threat_samples)
-                alert_payload = {
-                    "event": "NEW_CRITICAL_ALERT",
-                    "timestamp": datetime.utcnow().strftime("%H:%M:%S UTC"),
-                    "indicator": sample["val"],
-                    "type": sample["type"],
-                    "severity_score": sample["score"],
-                    "source": sample["source"],
-                    "mitre": sample["mitre"],
-                    "action_required": "Triage & Contain"
-                }
-                await ws_manager.broadcast_alert(alert_payload)
+# Health Check Endpoint (Public)
+@app.get("/health", tags=["System"])
+def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    Operational Health Check.
+    Distinguishes application operational status from database connectivity.
+    """
+    db_status = "healthy"
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
 
-    asyncio.create_task(simulate_live_threat_feed())
+    return {
+        "status": "ok" if "unhealthy" not in db_status else "degraded",
+        "application": "healthy",
+        "database": db_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0.0"
+    }
 
-@app.get("/")
+@app.get("/", tags=["System"])
 def root():
     return {
-        "platform": "ThreatLens CTI & SOC Hub",
+        "platform": "ThreatLens Enterprise CTI & SOC Hub",
         "status": "online",
-        "version": "v1.0"
+        "version": "1.0.0",
+        "api_v1_docs": "/docs",
+        "canonical_tree": "/api/v1"
     }

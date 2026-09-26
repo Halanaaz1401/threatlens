@@ -1,20 +1,44 @@
+import os
+from typing import List
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
-    POSTGRES_USER: str = "threatlens_admin"
-    POSTGRES_PASSWORD: str = "threatlens_secure_password_2026"
-    POSTGRES_DB: str = "threatlens_db"
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    
-    SECRET_KEY: str = "super_secret_jwt_key_threatlens_2026"
-    ALGORITHM: str = "HS256"
-    
+    model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    # Database Settings
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "threatlens_admin")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "threatlens_secure_password_2026")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "threatlens_db")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
+
+    # Security & JWT Configuration
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "super_secret_jwt_key_threatlens_2026")
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
+
+    # Runtime Environment & CORS
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
+    @property
+    def ALLOWED_ORIGINS(self) -> List[str]:
+        raw = os.getenv("ALLOWED_ORIGINS")
+        if raw:
+            return [origin.strip() for origin in raw.split(",") if origin.strip()]
+        return [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "https://threatlens.ashlynxcyber.in",
+        ]
+
     @property
     def DATABASE_URL(self) -> str:
+        explicit_url = os.getenv("DATABASE_URL")
+        if explicit_url:
+            return explicit_url
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-
-    class Config:
-        env_file = ".env"
 
 settings = Settings()

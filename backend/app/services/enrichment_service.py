@@ -1,4 +1,8 @@
-import redis
+try:
+    import redis
+except ImportError:
+    redis = None
+
 import httpx
 import json
 from typing import Dict, Any
@@ -6,6 +10,8 @@ from typing import Dict, Any
 CACHE_EXPIRE_SECONDS = 3600
 
 def get_redis_client():
+    if redis is None:
+        return None
     try:
         client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True, socket_connect_timeout=1)
         client.ping()

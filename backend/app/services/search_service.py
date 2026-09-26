@@ -1,4 +1,8 @@
-from elasticsearch import Elasticsearch
+try:
+    from elasticsearch import Elasticsearch
+except ImportError:
+    Elasticsearch = None
+
 from typing import Dict, Any, Optional, List
 
 # Elasticsearch Connection
@@ -6,6 +10,8 @@ ES_HOST = "http://localhost:9200"
 INDEX_NAME = "indicators"
 
 def get_es_client():
+    if Elasticsearch is None:
+        return None
     try:
         es = Elasticsearch(ES_HOST, request_timeout=3)
         if es.ping():
