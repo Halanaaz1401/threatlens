@@ -133,63 +133,87 @@ async def fetch_threatfox():
 
 # 5. AlienVault OTX Community Pulse Feed
 async def fetch_alienvault_otx():
-    return [
-        {
-            "value": "45.142.214.22",
-            "type": "ip",
-            "severity_score": 92,
-            "confidence": 90,
-            "source": "AlienVault OTX",
-            "mitre_technique": "T1090.003",
-            "tags": "otx,pulse,apt29,proxy",
-            "status": "active"
-        },
-        {
-            "value": "auth-tokens-microsoft.com",
-            "type": "domain",
-            "severity_score": 86,
-            "confidence": 85,
-            "source": "AlienVault OTX",
-            "mitre_technique": "T1566.002",
-            "tags": "otx,spearphishing,credential_harvest",
-            "status": "active"
-        }
-    ]
+    url = "https://otx.alienvault.com/api/v1/pulses/activity"
+    indicators = []
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            res = await client.get(url)
+            if res.status_code == 200:
+                data = res.json()
+                for pulse in data.get("results", [])[:5]:
+                    pulse_name = pulse.get("name", "OTX Pulse")
+                    for ind in pulse.get("indicators", [])[:3]:
+                        val = ind.get("indicator")
+                        ind_type = str(ind.get("type", "")).lower()
+                        itype = "ip" if "ipv4" in ind_type else ("domain" if "domain" in ind_type else "url")
+                        score = calculate_severity_score(
+                            reputation_score=85,
+                            detection_positives=45,
+                            detection_total=70,
+                            last_seen=datetime.utcnow(),
+                            internal_sightings=1
+                        )
+                        if val:
+                            indicators.append({
+                                "value": val,
+                                "type": itype,
+                                "severity_score": score,
+                                "confidence": 85,
+                                "source": "AlienVault OTX",
+                                "mitre_technique": "T1090.003",
+                                "tags": f"otx,pulse,{pulse_name[:20].lower()}",
+                                "status": "active"
+                            })
+    except Exception as e:
+        print(f"[!] AlienVault OTX Error: {e}")
+    return indicators
 
 # 6. CISA KEV Exploited Vulnerabilities Catalog
 async def fetch_cisa_kev():
-    return [
-        {
-            "value": "CVE-2024-21413",
-            "type": "cve",
-            "severity_score": 98,
-            "confidence": 100,
-            "source": "CISA KEV",
-            "mitre_technique": "T1190",
-            "tags": "cisa_kev,rce,monikerlink,critical",
-            "status": "active"
-        },
-        {
-            "value": "CVE-2024-3400",
-            "type": "cve",
-            "severity_score": 96,
-            "confidence": 100,
-            "source": "CISA KEV",
-            "mitre_technique": "T1190",
-            "tags": "cisa_kev,pan_os,zero_day",
-            "status": "active"
-        }
-    ]
+    url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+    indicators = []
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            res = await client.get(url)
+            if res.status_code == 200:
+                data = res.json()
+                for vuln in data.get("vulnerabilities", [])[:10]:
+                    cve_id = vuln.get("cveID")
+                    score = calculate_severity_score(
+                        reputation_score=100,
+                        detection_positives=68,
+                        detection_total=70,
+                        last_seen=datetime.utcnow(),
+                        internal_sightings=3
+                    )
+                    if cve_id:
+                        indicators.append({
+                            "value": cve_id,
+                            "type": "cve",
+                            "severity_score": score,
+                            "confidence": 100,
+                            "source": "CISA KEV",
+                            "mitre_technique": "T1190",
+                            "tags": f"cisa_kev,vulnerability,{str(vuln.get('vendorProject', 'exploit')).lower()}",
+                            "status": "active"
+                        })
+    except Exception as e:
+        print(f"[!] CISA KEV Error: {e}")
+    return indicators
 
 # Master Feed Ingestion Aggregator (6 Sources)
 async def run_live_ingestion():
-    feodo, urlhaus, mb, tf = await asyncio.gather(
+    feodo, urlhaus, mb, tf, otx, cisa = await asyncio.gather(
         fetch_feodo_c2_ips(),
         fetch_urlhaus_urls(),
         fetch_malware_bazaar(),
-        fetch_threatfox()
+        fetch_threatfox(),
+        fetch_alienvault_otx(),
+        fetch_cisa_kev(),
+        return_exceptions=True
     )
-    otx = await fetch_alienvault_otx()
-    cisa = await fetch_cisa_kev()
-
-    return feodo + urlhaus + mb + tf + otx + cisa
+    results = []
+    for item in [feodo, urlhaus, mb, tf, otx, cisa]:
+        if isinstance(item, list):
+            results.extend(item)
+    return results

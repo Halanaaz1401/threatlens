@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders, getAuthToken } from "@/lib/auth";
 
 interface IOCItem {
   id: string;
@@ -26,69 +26,12 @@ export default function AnalystDashboardPage() {
   const [enrichmentData, setEnrichmentData] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [liveToast, setLiveToast] = useState<any>(null);
-
-  // Initial fallback indicators
-  const defaultFallbackIOCs: IOCItem[] = [
-    {
-      id: "seed-1",
-      value: "CVE-2024-21413",
-      type: "cve",
-      severity_score: 98,
-      confidence: 100,
-      tlp: "amber",
-      status: "active",
-      tags: "cisa_kev,rce",
-      mitre_technique: "T1190"
-    },
-    {
-      id: "seed-2",
-      value: "45.142.214.22",
-      type: "ip",
-      severity_score: 95,
-      confidence: 90,
-      tlp: "amber",
-      status: "active",
-      tags: "otx,pulse,proxy",
-      mitre_technique: "T1090.003"
-    },
-    {
-      id: "seed-3",
-      value: "185.220.101.4",
-      type: "ip",
-      severity_score: 92,
-      confidence: 95,
-      tlp: "amber",
-      status: "active",
-      tags: "c2,botnet,feodo",
-      mitre_technique: "T1071.001"
-    },
-    {
-      id: "seed-4",
-      value: "27.133.154.218",
-      type: "ip",
-      severity_score: 83,
-      confidence: 90,
-      tlp: "amber",
-      status: "active",
-      tags: "c2,emotet",
-      mitre_technique: "T1071.001"
-    },
-    {
-      id: "seed-5",
-      value: "http://evil-payload-bank.xyz/drop.exe",
-      type: "url",
-      severity_score: 74,
-      confidence: 85,
-      tlp: "amber",
-      status: "active",
-      tags: "phishing,payload",
-      mitre_technique: "T1566.002"
-    }
-  ];
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchIndicators = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       let res = null;
       const headers = { ...getAuthHeaders() };
       try {
@@ -100,60 +43,73 @@ export default function AnalystDashboardPage() {
       if (res && res.ok) {
         const data = await res.json();
         const items = data.data || [];
+        setIndicators(items);
         if (items.length > 0) {
-          setIndicators(items);
           setSelectedIOC(items[0]);
           handleEnrich(items[0]);
-          return;
+        } else {
+          setSelectedIOC(null);
         }
+      } else {
+        setIndicators([]);
+        setSelectedIOC(null);
+        setFetchError("Unable to retrieve indicators from backend. Ensure API is running and authenticated.");
       }
-      setIndicators(defaultFallbackIOCs);
-      setSelectedIOC(defaultFallbackIOCs[0]);
-      handleEnrich(defaultFallbackIOCs[0]);
-    } catch {
-      setIndicators(defaultFallbackIOCs);
-      setSelectedIOC(defaultFallbackIOCs[0]);
-      handleEnrich(defaultFallbackIOCs[0]);
+    } catch (err: any) {
+      setIndicators([]);
+      setSelectedIOC(null);
+      setFetchError("Network error: Cannot reach ThreatLens API gateway.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Real-Time WebSocket with Deduplication (FR-03)
+  // Real-Time Authenticated WebSocket with Deduplication (FR-03, FR-15)
   useEffect(() => {
     fetchIndicators();
 
     let socket: WebSocket | null = null;
     try {
-      socket = new WebSocket("ws://127.0.0.1:8000/ws/alerts");
+      const token = getAuthToken();
+      const wsUrl = token
+        ? `ws://127.0.0.1:8000/api/v1/ws/alerts?token=${encodeURIComponent(token)}`
+        : "ws://127.0.0.1:8000/api/v1/ws/alerts";
+      socket = new WebSocket(wsUrl);
 
       socket.onmessage = (event) => {
         try {
-          const alertData = JSON.parse(event.data);
-          if (alertData.event === "NEW_CRITICAL_ALERT") {
+          const payload = JSON.parse(event.data);
+          const alertData = payload.data || payload;
+          if (
+            payload.event === "NEW_CRITICAL_ALERT" ||
+            payload.type === "NEW_ALERT" ||
+            alertData.indicator
+          ) {
             setLiveToast(alertData);
 
             setIndicators((prev) => {
+              const iocVal = alertData.indicator || alertData.ioc_value;
+              if (!iocVal) return prev;
               // Deduplicate: If IOC value already exists, filter old one out and push fresh to top
-              const filtered = prev.filter((item) => item.value !== alertData.indicator);
+              const filtered = prev.filter((item) => item.value !== iocVal);
               const newEntry: IOCItem = {
-                id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                value: alertData.indicator,
-                type: alertData.type,
-                severity_score: alertData.severity_score,
-                confidence: 95,
+                id: alertData.id || `alert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                value: iocVal,
+                type: alertData.type || "ip",
+                severity_score: alertData.severity_score || alertData.threat_score || 85,
+                confidence: alertData.confidence || 95,
                 tlp: "amber",
                 status: "active",
-                tags: alertData.source,
-                mitre_technique: alertData.mitre
+                tags: typeof alertData.tags === "string" ? alertData.tags : (Array.isArray(alertData.tags) ? alertData.tags.join(",") : (alertData.source || "live_feed")),
+                mitre_technique: alertData.mitre || "T1071"
               };
-              // Keep queue bounded to top 25 canonical items
-              return [newEntry, ...filtered].slice(0, 25);
+              // Keep queue bounded to top 50 canonical items
+              return [newEntry, ...filtered].slice(0, 50);
             });
 
             setTimeout(() => {
               setLiveToast(null);
-            }, 4000);
+            }, 5000);
           }
         } catch (e) {
           console.error("WS parse error:", e);

@@ -18,13 +18,26 @@ from app.models.user import User
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan event handler for startup table verification and graceful shutdown."""
+    """Lifespan event handler for startup table verification, Redis Pub/Sub listener, and graceful shutdown."""
     # Ensure database tables and columns exist
     try:
         init_db()
     except Exception as e:
         print(f"Warning: Database initialization error: {e}")
+
+    # Start Redis Pub/Sub listener
+    try:
+        await ws_manager.start_redis_listener()
+    except Exception as e:
+        print(f"Warning: Failed to start Redis Pub/Sub listener: {e}")
+
     yield
+
+    # Clean shutdown of Redis Pub/Sub listener
+    try:
+        await ws_manager.stop_redis_listener()
+    except Exception:
+        pass
 
 app = FastAPI(
     title="ThreatLens Enterprise CTI API",

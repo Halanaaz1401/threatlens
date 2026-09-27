@@ -36,6 +36,7 @@ class Settings(BaseSettings):
 
     # Redis Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_ALERT_CHANNEL: str = os.getenv("REDIS_ALERT_CHANNEL", "threatlens:events:alerts")
 
     # Elasticsearch Configuration
     ELASTICSEARCH_URL: str = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")

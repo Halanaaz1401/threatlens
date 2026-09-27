@@ -16,48 +16,17 @@ export interface AlertItem {
 
 interface AlertQueueProps {
   currentRole: Role;
+  alerts?: AlertItem[];
   onSelectAlert?: (alert: AlertItem) => void;
 }
 
-const mockAlerts: AlertItem[] = [
-  {
-    id: "ALT-9042",
-    severity: "CRITICAL",
-    title: "Cobalt Strike C2 Beaconing Detected",
-    indicator: "185.220.101.5",
-    type: "IPv4",
-    source: "AbuseIPDB",
-    timestamp: "2 mins ago",
-    status: "NEW",
-  },
-  {
-    id: "ALT-9041",
-    severity: "HIGH",
-    title: "Malicious Hash Match (Lumma Stealer)",
-    indicator: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    type: "SHA256",
-    source: "URLhaus",
-    timestamp: "12 mins ago",
-    status: "ACKNOWLEDGED",
-  },
-  {
-    id: "ALT-9039",
-    severity: "MEDIUM",
-    title: "Suspicious Dynamic DNS Query Pattern",
-    indicator: "update-win-telemetry.ddns.net",
-    type: "Domain",
-    source: "AlienVault OTX",
-    timestamp: "34 mins ago",
-    status: "NEW",
-  },
-];
-
-export function AlertQueue({ currentRole, onSelectAlert }: AlertQueueProps) {
-  const [alerts, setAlerts] = useState<AlertItem[]>(mockAlerts);
+export function AlertQueue({ currentRole, alerts: propAlerts, onSelectAlert }: AlertQueueProps) {
+  const [internalAlerts, setInternalAlerts] = useState<AlertItem[]>([]);
+  const alerts = propAlerts !== undefined ? propAlerts : internalAlerts;
   const canTriage = hasPermission(currentRole, "triage_alerts");
 
   const handleStatusChange = (id: string, newStatus: AlertItem["status"]) => {
-    setAlerts((prev) =>
+    setInternalAlerts((prev) =>
       prev.map((alert) => (alert.id === id ? { ...alert, status: newStatus } : alert))
     );
   };

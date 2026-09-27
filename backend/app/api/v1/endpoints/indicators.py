@@ -10,11 +10,14 @@ from app.services.feed_service import (
     fetch_urlhaus_recent_urls,
     fetch_threatfox_recent_iocs,
     fetch_feodo_tracker_ips,
-    fetch_malwarebazaar_recent_hashes
+    fetch_malwarebazaar_recent_hashes,
+    fetch_cisa_kev_cves,
+    fetch_alienvault_otx_indicators,
 )
 from app.services.audit_service import log_action
 from app.services.scoring_service import calculate_ioc_severity
 from app.services.search_service import index_indicator
+from app.services.alert_service import evaluate_ioc_for_alerts
 
 from app.core.rbac import (
     require_authenticated_user,
@@ -143,6 +146,12 @@ def create_manual_ioc(
     except Exception:
         pass
 
+    # Trigger real-time alert evaluation (creates Alert and publishes to Redis Pub/Sub if high/critical)
+    try:
+        evaluate_ioc_for_alerts(db, new_ioc)
+    except Exception:
+        pass
+
     # Audit Logging
     try:
         log_action(
@@ -230,6 +239,10 @@ async def trigger_feed_ingestion(
         results["feodo_tracker"] = await fetch_feodo_tracker_ips(db)
     if source in ["all", "malwarebazaar"]:
         results["malwarebazaar"] = await fetch_malwarebazaar_recent_hashes(db)
+    if source in ["all", "cisa", "cisa_kev"]:
+        results["cisa_kev"] = await fetch_cisa_kev_cves(db)
+    if source in ["all", "otx", "alienvault_otx"]:
+        results["alienvault_otx"] = await fetch_alienvault_otx_indicators(db)
 
     try:
         log_action(

@@ -146,7 +146,7 @@ def test_redis_token_revocation_and_ttl():
     assert not redis_manager.is_token_revoked(test_jti)
 
     # Revoke token
-    success = redis_manager.revoke_token(test_jti, ttl_seconds=2)
+    success = redis_manager.revoke_token(test_jti, ttl_seconds=10)
     assert success is True
     assert redis_manager.is_token_revoked(test_jti) is True
 

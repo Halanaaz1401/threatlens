@@ -12,6 +12,8 @@ from app.services.feed_service import (
     fetch_threatfox_recent_iocs,
     fetch_feodo_tracker_ips,
     fetch_malwarebazaar_recent_hashes,
+    fetch_cisa_kev_cves,
+    fetch_alienvault_otx_indicators,
     fetch_all_feeds,
 )
 from app.services.audit_service import log_action
@@ -38,8 +40,8 @@ def list_feeds(
     """List all registered threat intelligence feeds (Authenticated)."""
     feeds = db.query(Feed).all()
     if not feeds:
-        # Default configured feeds if none seeded in DB
-        default_names = ["urlhaus", "threatfox", "feodo_tracker", "malwarebazaar"]
+        # Default configured feeds if none seeded in DB (All 6 PRD feeds)
+        default_names = ["urlhaus", "threatfox", "feodo_tracker", "malwarebazaar", "cisa_kev", "alienvault_otx"]
         for name in default_names:
             feed = Feed(name=name, enabled=True, poll_interval_seconds=3600)
             db.add(feed)
@@ -67,6 +69,10 @@ async def trigger_feed_fetch(
         results["feodo_tracker"] = await fetch_feodo_tracker_ips(db)
     if source in ["all", "malwarebazaar"]:
         results["malwarebazaar"] = await fetch_malwarebazaar_recent_hashes(db)
+    if source in ["all", "cisa", "cisa_kev"]:
+        results["cisa_kev"] = await fetch_cisa_kev_cves(db)
+    if source in ["all", "otx", "alienvault_otx"]:
+        results["alienvault_otx"] = await fetch_alienvault_otx_indicators(db)
 
     try:
         log_action(
