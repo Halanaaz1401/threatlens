@@ -18,10 +18,15 @@ def get_database_url() -> str:
     """
     explicit_url = os.getenv("DATABASE_URL")
     if explicit_url:
+        if explicit_url.startswith("postgresql://"):
+            return explicit_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return explicit_url
 
     if settings.ENVIRONMENT == "production" or os.getenv("USE_POSTGRES", "").lower() in ("true", "1"):
-        return settings.DATABASE_URL
+        url = settings.DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return url
 
     return "sqlite:///./threatlens.db"
 
