@@ -1,68 +1,64 @@
 import { getAuthHeaders } from "./auth";
 
-export async function safeFetchIndicators() {
-  const fallback = [
-    { id: "1", value: "CVE-2024-21413", type: "cve", severity_score: 98, confidence: 100, mitre_technique: "T1190", tags: "cisa_kev", status: "active" },
-    { id: "2", value: "185.220.101.4", type: "ip", severity_score: 92, confidence: 95, mitre_technique: "T1071.001", tags: "feodo,c2", status: "active" },
-    { id: "3", value: "45.142.214.22", type: "ip", severity_score: 95, confidence: 90, mitre_technique: "T1090.003", tags: "otx,pulse", status: "active" },
-    { id: "4", value: "27.133.154.218", type: "ip", severity_score: 83, confidence: 90, mitre_technique: "T1071.001", tags: "emotet", status: "active" },
-    { id: "5", value: "http://evil-payload-bank.xyz/drop.exe", type: "url", severity_score: 74, confidence: 85, mitre_technique: "T1566.002", tags: "payload", status: "active" }
-  ];
+const API_BASE_URLS = ["http://127.0.0.1:8000", "http://localhost:8000"];
 
-  try {
-    let res = null;
-    const headers = {
-      ...getAuthHeaders(),
-    };
-
+async function apiGet(path: string) {
+  const headers = { ...getAuthHeaders() };
+  for (const base of API_BASE_URLS) {
     try {
-      res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store", headers });
+      const res = await fetch(`${base}${path}`, { cache: "no-store", headers });
+      if (res.ok) {
+        return await res.json();
+      }
     } catch {
-      res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store", headers });
+      // try next host
     }
-
-    if (res && res.ok) {
-      const json = await res.json();
-      if (json.data && json.data.length > 0) return json.data;
-    }
-  } catch (err) {
-    console.warn("Using local indicators fallback:", err);
   }
-  return fallback;
+  return null;
+}
+
+export async function safeFetchIndicators() {
+  const json = await apiGet("/api/v1/indicators");
+  if (json && json.data) {
+    return json.data;
+  }
+  return [];
 }
 
 export async function safeFetchIncidents() {
-  try {
-    let res = null;
-    const headers = { ...getAuthHeaders() };
-    try {
-      res = await fetch("http://127.0.0.1:8000/api/v1/incidents", { cache: "no-store", headers });
-    } catch {
-      res = await fetch("http://localhost:8000/api/v1/incidents", { cache: "no-store", headers });
-    }
-    if (res && res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn("Error fetching incidents:", err);
-  }
-  return [];
+  const json = await apiGet("/api/v1/incidents");
+  return json || [];
 }
 
 export async function safeFetchIncidentTimeline(incidentId: string) {
-  try {
-    let res = null;
-    const headers = { ...getAuthHeaders() };
-    try {
-      res = await fetch(`http://127.0.0.1:8000/api/v1/incidents/${incidentId}/timeline`, { cache: "no-store", headers });
-    } catch {
-      res = await fetch(`http://localhost:8000/api/v1/incidents/${incidentId}/timeline`, { cache: "no-store", headers });
-    }
-    if (res && res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn("Error fetching incident timeline:", err);
-  }
-  return [];
+  const json = await apiGet(`/api/v1/incidents/${incidentId}/timeline`);
+  return json || [];
+}
+
+export async function safeFetchAnalyticsOverview(timeRange: string = "24h") {
+  return await apiGet(`/api/v1/analytics/overview?time_range=${timeRange}`);
+}
+
+export async function safeFetchAnalyticsKPIs(timeRange: string = "24h") {
+  return await apiGet(`/api/v1/analytics/kpis?time_range=${timeRange}`);
+}
+
+export async function safeFetchAnalyticsTrends(timeRange: string = "24h") {
+  return await apiGet(`/api/v1/analytics/trends?time_range=${timeRange}`);
+}
+
+export async function safeFetchAnalyticsSeverity() {
+  return await apiGet("/api/v1/analytics/severity");
+}
+
+export async function safeFetchMitreAnalytics() {
+  return await apiGet("/api/v1/analytics/mitre");
+}
+
+export async function safeFetchGeoAnalytics() {
+  return await apiGet("/api/v1/analytics/geography");
+}
+
+export async function safeFetchIndicatorEnrichment(indicatorId: string) {
+  return await apiGet(`/api/v1/indicators/${indicatorId}/enrichment`);
 }

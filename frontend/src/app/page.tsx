@@ -1,39 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
+import { safeFetchAnalyticsKPIs } from "@/lib/api";
 
 export default function HomePage() {
   const { role, persona } = useRole();
   const [activeTab, setActiveTab] = useState<"all" | "triage" | "hunting" | "executive">("all");
+  const [kpis, setKpis] = useState<any>(null);
+  const [loadingKpis, setLoadingKpis] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    safeFetchAnalyticsKPIs("24h")
+      .then((data) => {
+        if (mounted && data) setKpis(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setLoadingKpis(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const telemetryStats = [
     {
       label: "Indexed Indicators (IOCs)",
-      value: "48,920",
-      change: "+850 today",
+      value: loadingKpis ? "..." : (kpis ? kpis.total_indicators.toLocaleString() : "0"),
+      change: kpis ? `+${kpis.indicators_in_window} in 24h` : "Live Feed",
       color: "text-cyan-400",
       glow: "border-cyan-500/20 bg-cyan-950/20",
     },
     {
       label: "Active Ingestion Feeds",
-      value: "12 / 12",
-      change: "99.9% Uptime",
+      value: loadingKpis ? "..." : (kpis ? `${kpis.active_feeds_count} Feeds` : "Active"),
+      change: "Enterprise Pipeline",
       color: "text-emerald-400",
       glow: "border-emerald-500/20 bg-emerald-950/20",
     },
     {
       label: "Critical SEV-1 Alerts",
-      value: "03",
-      change: "Containment Active",
+      value: loadingKpis ? "..." : (kpis ? String(kpis.critical_alerts_count).padStart(2, "0") : "00"),
+      change: kpis && kpis.critical_alerts_count > 0 ? "Active Investigation" : "Operational Normal",
       color: "text-amber-400",
       glow: "border-amber-500/20 bg-amber-950/20",
     },
     {
       label: "Mean Time to Detect (MTTD)",
-      value: "4.2m",
-      change: "-38% YoY",
+      value: loadingKpis ? "..." : (kpis ? `${kpis.mean_time_to_detect_minutes}m` : "0m"),
+      change: "Database Calculated",
       color: "text-purple-400",
       glow: "border-purple-500/20 bg-purple-950/20",
     },
