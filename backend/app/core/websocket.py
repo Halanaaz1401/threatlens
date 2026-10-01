@@ -37,8 +37,12 @@ class ConnectionManager:
             logger.info(f"WebSocket client disconnected. Active connections: {len(self.active_connections)}")
 
     def _on_bus_event(self, channel: str, event_data: dict):
-        """Callback from RedisManager event bus."""
-        if channel == settings.REDIS_ALERT_CHANNEL or channel.endswith("alerts"):
+        """Callback from RedisManager event bus (used as fallback when Redis Pub/Sub listener is inactive)."""
+        if self._listener_task is not None and not self._listener_task.done():
+            # Redis background listener is active and already broadcasting messages from Redis Pub/Sub
+            return
+
+        if channel == settings.REDIS_ALERT_CHANNEL or channel.endswith("alerts") or channel == getattr(settings, "REDIS_INCIDENT_CHANNEL", "") or channel.endswith("incidents"):
             # If we captured the running loop of the active WebSocket connections, schedule thread-safely
             if self._loop is not None and self._loop.is_running():
                 try:

@@ -14,7 +14,7 @@ import app.models
 from app.database import get_database_url
 
 config = context.config
-target_url = os.getenv("DATABASE_URL") or get_database_url()
+target_url = get_database_url()
 config.set_main_option("sqlalchemy.url", target_url)
 
 if config.config_file_name is not None:

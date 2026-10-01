@@ -128,6 +128,13 @@ def evaluate_ioc_for_alerts(db: Session, indicator: Indicator) -> Alert | None:
         redis_manager.publish_event(settings.REDIS_ALERT_CHANNEL, alert_payload)
         logger.info(f"Published real-time alert event for IOC {indicator.value} to Redis channel {settings.REDIS_ALERT_CHANNEL}")
 
+        # Phase 4A: Correlate Alert into Security Incident (Step 9)
+        try:
+            from app.services.correlation_service import correlate_alert_to_incident
+            correlate_alert_to_incident(db, new_alert)
+        except Exception as corr_err:
+            logger.error(f"Correlation engine error for Alert {new_alert.id}: {corr_err}")
+
         return new_alert
 
     except Exception as e:

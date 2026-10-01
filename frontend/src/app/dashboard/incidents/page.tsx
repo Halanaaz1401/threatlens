@@ -2,26 +2,41 @@
 
 import React, { useState, useEffect } from "react";
 import { useRole } from "@/context/RoleContext";
-import { safeFetchIndicators } from "@/lib/api";
+import { safeFetchIndicators, safeFetchIncidents, safeFetchIncidentTimeline } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth";
 
 export default function IncidentResponsePage() {
   const { persona } = useRole();
   const [indicators, setIndicators] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [activeIncident, setActiveIncident] = useState<any | null>(null);
+  const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportGenerated, setReportGenerated] = useState(false);
 
   useEffect(() => {
-    async function loadIOCs() {
+    async function loadData() {
       setLoading(true);
-      const items = await safeFetchIndicators();
-      setIndicators(items);
+      const [iocs, incList] = await Promise.all([
+        safeFetchIndicators(),
+        safeFetchIncidents()
+      ]);
+      setIndicators(iocs);
+      setIncidents(incList);
+
+      if (incList && incList.length > 0) {
+        const topInc = incList[0];
+        setActiveIncident(topInc);
+        const tl = await safeFetchIncidentTimeline(topInc.id);
+        setTimeline(tl);
+      }
       setLoading(false);
     }
-    loadIOCs();
+    loadData();
   }, []);
 
   const handleGenerateReport = async () => {
+    const incCode = activeIncident?.incident_code || "INC-2026-0815";
     try {
       let res = null;
       const headers = { ...getAuthHeaders() };
@@ -37,19 +52,19 @@ export default function IncidentResponsePage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `INC-2026-0815-STIX2.1-Bundle.json`;
+        link.download = `${incCode}-STIX2.1-Bundle.json`;
         link.click();
         URL.revokeObjectURL(url);
       } else {
         throw new Error("API fallback");
       }
     } catch {
-      const mockBundle = { type: "bundle", spec_version: "2.1", objects: indicators };
-      const blob = new Blob([JSON.stringify(mockBundle, null, 2)], { type: "application/json" });
+      const bundle = { type: "bundle", spec_version: "2.1", objects: indicators };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `INC-2026-0815-STIX2.1-Bundle.json`;
+      link.download = `${incCode}-STIX2.1-Bundle.json`;
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -58,20 +73,32 @@ export default function IncidentResponsePage() {
     }
   };
 
+  const incCode = activeIncident?.incident_code || "INC-2026-0815";
+  const incTitle = activeIncident?.title || "Suspected Emotet C2 Ingress via Workstation Subnet";
+  const incSeverity = activeIncident?.severity || "HIGH";
+  const incStatus = activeIncident?.status || "OPEN";
+  const alertCount = activeIncident?.alerts_count || 2;
+  const primaryIoc = activeIncident?.primary_indicator || activeIncident?.matched_ioc_value || "185.220.101.4";
+
   return (
     <div className="space-y-6 pb-12">
       <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              ⚠️ Incident Workspace: INC-2026-0815
+              ⚠️ Incident Workspace: {incCode}
             </span>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-orange-950/80 text-orange-400 border border-orange-800">
               {persona.name} ({persona.title})
             </span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+              incSeverity === "CRITICAL" ? "bg-red-950 text-red-400 border-red-800" : "bg-amber-950 text-amber-400 border-amber-800"
+            }`}>
+              {incSeverity} · {incStatus}
+            </span>
           </div>
           <p className="text-xs text-slate-400">
-            Active SEV-1: Suspected Emotet C2 Ingress via Workstation Subnet · Auto-correlated with 6 intelligence feeds.
+            {incTitle} · Correlated from {alertCount} active alerts with threat telemetry.
           </p>
         </div>
 
@@ -91,21 +118,45 @@ export default function IncidentResponsePage() {
             <span>⏱️</span> Chronological Forensic Timeline
           </h2>
           <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-red-500 border border-slate-800/80 space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-red-400">High-Severity C2 Beacon Detected</span>
-                <span className="font-mono text-[10px] text-slate-400">18:42:10 UTC</span>
-              </div>
-              <p className="text-xs text-slate-300">Internal endpoint <code>10.0.4.18</code> established TCP connection to blacklisted C2 IP <code>185.220.101.4</code>.</p>
-            </div>
+            {timeline && timeline.length > 0 ? (
+              timeline.map((entry, idx) => (
+                <div
+                  key={entry.id || idx}
+                  className={`p-3 rounded-xl bg-[#080d19] border-l-4 ${
+                    entry.action?.includes("ESCALATED") || entry.action?.includes("CRITICAL")
+                      ? "border-l-red-500"
+                      : "border-l-orange-500"
+                  } border border-slate-800/80 space-y-1`}
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200">{entry.action}</span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {entry.created_at ? new Date(entry.created_at).toLocaleTimeString() : "Recent"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">{entry.details || "Automated telemetry event recorded."}</p>
+                  <div className="text-[10px] text-slate-400">Actor: {entry.actor}</div>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-red-500 border border-slate-800/80 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-red-400">High-Severity C2 Beacon Detected</span>
+                    <span className="font-mono text-[10px] text-slate-400">18:42:10 UTC</span>
+                  </div>
+                  <p className="text-xs text-slate-300">Internal endpoint established communication with malicious IOC <code>{primaryIoc}</code>.</p>
+                </div>
 
-            <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-orange-500 border border-slate-800/80 space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-orange-400">Automated Scoring &amp; Enrichment</span>
-                <span className="font-mono text-[10px] text-slate-400">18:42:15 UTC</span>
-              </div>
-              <p className="text-xs text-slate-300">ThreatLens scoring engine assigned composite severity <strong>92/100</strong>.</p>
-            </div>
+                <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-orange-500 border border-slate-800/80 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-orange-400">Automated Scoring &amp; Incident Correlation</span>
+                    <span className="font-mono text-[10px] text-slate-400">18:42:15 UTC</span>
+                  </div>
+                  <p className="text-xs text-slate-300">ThreatLens correlation engine created incident cluster for {primaryIoc}.</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -117,11 +168,19 @@ export default function IncidentResponsePage() {
           <div className="space-y-2.5 text-xs">
             <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
               <input type="checkbox" defaultChecked className="rounded accent-orange-500" />
-              <span className="text-slate-200">Isolate host <code>host-wkstn-04</code> at EDR layer</span>
+              <span className="text-slate-200">Isolate affected internal host at EDR layer</span>
             </label>
             <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
               <input type="checkbox" defaultChecked className="rounded accent-orange-500" />
-              <span className="text-slate-200">Push edge firewall block for <code>185.220.101.4</code></span>
+              <span className="text-slate-200">Push edge firewall block for <code>{primaryIoc}</code></span>
+            </label>
+            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
+              <input type="checkbox" className="rounded accent-orange-500" />
+              <span className="text-slate-200">Revoke associated session tokens and credentials</span>
+            </label>
+            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
+              <input type="checkbox" className="rounded accent-orange-500" />
+              <span className="text-slate-200">Trigger SIEM correlation rule backtrace (last 48h)</span>
             </label>
           </div>
         </div>

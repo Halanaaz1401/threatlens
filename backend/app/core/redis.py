@@ -140,17 +140,17 @@ class RedisManager:
 
         # 2. Dispatch to local subscribers (in-memory fallback / testing)
         for cb in list(self._local_subscribers):
-            try:
-                res = cb(channel, event_data)
-                if asyncio.iscoroutine(res):
-                    try:
-                        loop = asyncio.get_event_loop()
-                        if loop.is_running():
-                            loop.create_task(res)
-                    except Exception:
-                        pass
-            except Exception as err:
-                logger.error(f"Local subscriber callback failed: {err}")
+                try:
+                    res = cb(channel, event_data)
+                    if asyncio.iscoroutine(res):
+                        try:
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                loop.create_task(res)
+                        except Exception:
+                            pass
+                except Exception as err:
+                    logger.error(f"Local subscriber callback failed: {err}")
 
         return success or len(self._local_subscribers) > 0
 

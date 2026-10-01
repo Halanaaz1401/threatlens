@@ -30,3 +30,39 @@ export async function safeFetchIndicators() {
   }
   return fallback;
 }
+
+export async function safeFetchIncidents() {
+  try {
+    let res = null;
+    const headers = { ...getAuthHeaders() };
+    try {
+      res = await fetch("http://127.0.0.1:8000/api/v1/incidents", { cache: "no-store", headers });
+    } catch {
+      res = await fetch("http://localhost:8000/api/v1/incidents", { cache: "no-store", headers });
+    }
+    if (res && res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Error fetching incidents:", err);
+  }
+  return [];
+}
+
+export async function safeFetchIncidentTimeline(incidentId: string) {
+  try {
+    let res = null;
+    const headers = { ...getAuthHeaders() };
+    try {
+      res = await fetch(`http://127.0.0.1:8000/api/v1/incidents/${incidentId}/timeline`, { cache: "no-store", headers });
+    } catch {
+      res = await fetch(`http://localhost:8000/api/v1/incidents/${incidentId}/timeline`, { cache: "no-store", headers });
+    }
+    if (res && res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Error fetching incident timeline:", err);
+  }
+  return [];
+}

@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     REDIS_ALERT_CHANNEL: str = os.getenv("REDIS_ALERT_CHANNEL", "threatlens:events:alerts")
+    REDIS_INCIDENT_CHANNEL: str = os.getenv("REDIS_INCIDENT_CHANNEL", "threatlens:events:incidents")
+
+    # Phase 4A Correlation Engine
+    CORRELATION_WINDOW_MINUTES: int = int(os.getenv("CORRELATION_WINDOW_MINUTES", "15"))
 
     # Elasticsearch Configuration
     ELASTICSEARCH_URL: str = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
