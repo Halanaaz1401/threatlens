@@ -19,6 +19,7 @@ from app.models.incident import (
     IncidentStatus,
     SecurityEvent,
 )
+from app.models.enrichment import IndicatorEnrichment
 from app.models.feed import Feed
 from app.models.audit import AuditLog
 from app.models.user import User, Role
@@ -30,6 +31,7 @@ __all__ = [
     "IndicatorType",
     "ThreatSeverity",
     "IndicatorStatus",
+    "IndicatorEnrichment",
     "Alert",
     "AlertSeverity",
     "AlertStatus",

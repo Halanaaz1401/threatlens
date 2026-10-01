@@ -226,4 +226,22 @@ class RedisManager:
 
 redis_manager = RedisManager(settings.REDIS_URL)
 
-__all__ = ["redis_manager", "RedisManager"]
+def publish_enrichment_event(event_type: str, data: dict) -> bool:
+    """
+    Publish structured threat intelligence enrichment event (Phase 4B).
+    Events: ENRICHMENT_STARTED, ENRICHMENT_COMPLETED, ENRICHMENT_PARTIAL, ENRICHMENT_FAILED.
+    Publishes to REDIS_ENRICHMENT_CHANNEL and REDIS_ALERT_CHANNEL for real-time frontend streaming.
+    """
+    from datetime import datetime
+    payload = {
+        "type": event_type,
+        "event": event_type,
+        "channel": settings.REDIS_ENRICHMENT_CHANNEL,
+        "timestamp": datetime.utcnow().isoformat(),
+        "data": data,
+    }
+    res1 = redis_manager.publish_event(settings.REDIS_ENRICHMENT_CHANNEL, payload)
+    res2 = redis_manager.publish_event(settings.REDIS_ALERT_CHANNEL, payload)
+    return res1 or res2
+
+__all__ = ["redis_manager", "RedisManager", "publish_enrichment_event"]

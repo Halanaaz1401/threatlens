@@ -166,7 +166,19 @@ def create_manual_ioc(
     except Exception:
         pass
 
-    return new_ioc
+    return {
+        "id": str(new_ioc.id),
+        "value": new_ioc.value,
+        "type": str(new_ioc.type.value if hasattr(new_ioc.type, "value") else new_ioc.type),
+        "source": new_ioc.source,
+        "confidence": new_ioc.confidence,
+        "threat_score": new_ioc.threat_score,
+        "severity": str(new_ioc.severity.value if hasattr(new_ioc.severity, "value") else new_ioc.severity),
+        "status": str(new_ioc.status.value if hasattr(new_ioc.status, "value") else new_ioc.status),
+        "tags": new_ioc.tags or [],
+        "context": new_ioc.context or {},
+        "created_at": new_ioc.first_seen.isoformat() if new_ioc.first_seen else None,
+    }
 
 @router.patch("/{indicator_id}/status")
 def update_ioc_status(
@@ -255,3 +267,116 @@ async def trigger_feed_ingestion(
         pass
     
     return {"status": "success", "summary": results}
+
+class EnrichRequest(BaseModel):
+    force_refresh: bool = False
+
+@router.post("/{indicator_id}/enrich")
+async def trigger_indicator_enrichment(
+    indicator_id: str,
+    request: Request,
+    enrich_in: Optional[EnrichRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst),
+):
+    """
+    Trigger multi-provider threat intelligence enrichment (VirusTotal, AbuseIPDB, AlienVault OTX).
+    Requires Analyst+ role.
+    """
+    from app.services.enrichment_service import enrich_indicator
+
+    force_refresh = enrich_in.force_refresh if enrich_in else False
+    try:
+        result = await enrich_indicator(
+            db,
+            indicator_id=indicator_id,
+            force_refresh=force_refresh,
+            actor=current_user.email,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Enrichment error: {str(e)}")
+
+    try:
+        log_action(
+            db,
+            action="INDICATOR_ENRICHMENT_TRIGGERED",
+            actor=current_user.email,
+            user_id=current_user.id,
+            target_resource=f"indicator:{indicator_id}",
+            details={"indicator_id": indicator_id, "force_refresh": force_refresh, "status": result.get("status")},
+            request=request,
+        )
+    except Exception:
+        pass
+
+    return result
+
+@router.get("/{indicator_id}/enrichment")
+def get_indicator_enrichment_summary(
+    indicator_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Retrieve all stored enrichment records and synthesized context for an indicator."""
+    from app.services.enrichment_service import get_indicator_enrichments, calculate_aggregate_intelligence
+    from app.services.enrichment.base import NormalizedEnrichmentResult
+
+    indicator = db.query(Indicator).filter(Indicator.id == str(indicator_id)).first()
+    if not indicator:
+        raise HTTPException(status_code=404, detail="Indicator not found")
+
+    enrichments = get_indicator_enrichments(db, indicator_id)
+    # Reconstruct normalized objects for aggregate calculation
+    normalized_records = [
+        NormalizedEnrichmentResult(
+            provider=r["provider"],
+            queried_value=r["queried_value"],
+            indicator_type=r["indicator_type"],
+            verdict=r["verdict"],
+            confidence=r["confidence"],
+            malicious_count=r["malicious_count"],
+            suspicious_count=r["suspicious_count"],
+            tags=r["tags"],
+            malware_families=r["malware_families"],
+            threat_actors=r["threat_actors"],
+            success=r["success"],
+        )
+        for r in enrichments
+    ]
+    aggregate = calculate_aggregate_intelligence(normalized_records)
+
+    return {
+        "status": "success",
+        "indicator_id": str(indicator.id),
+        "value": indicator.value,
+        "type": str(indicator.type.value if hasattr(indicator.type, "value") else indicator.type),
+        "aggregate": aggregate,
+        "enrichments": enrichments,
+    }
+
+@router.get("/{indicator_id}/enrichment/{provider}")
+def get_indicator_enrichment_provider(
+    indicator_id: str,
+    provider: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Retrieve enrichment results for a specific provider (virustotal, abuseipdb, alienvault_otx)."""
+    from app.services.enrichment_service import get_indicator_enrichment_by_provider
+
+    indicator = db.query(Indicator).filter(Indicator.id == str(indicator_id)).first()
+    if not indicator:
+        raise HTTPException(status_code=404, detail="Indicator not found")
+
+    enrichment = get_indicator_enrichment_by_provider(db, indicator_id, provider)
+    if not enrichment:
+        raise HTTPException(status_code=404, detail=f"No enrichment found from provider '{provider}'")
+
+    return {
+        "status": "success",
+        "indicator_id": str(indicator.id),
+        "provider": provider,
+        "enrichment": enrichment,
+    }

@@ -111,6 +111,7 @@ class Indicator(Base):
 
     sources = relationship("IndicatorSource", back_populates="indicator", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="indicator", foreign_keys="[Alert.indicator_id]")
+    enrichments = relationship("IndicatorEnrichment", back_populates="indicator", cascade="all, delete-orphan")
 
 class IndicatorSource(Base):
     __tablename__ = "indicator_sources"
@@ -127,6 +128,7 @@ class IndicatorSource(Base):
 # Re-export Alert and AuditLog for backward compatibility with legacy router imports
 from app.models.alert import Alert
 from app.models.audit import AuditLog
+from app.models.enrichment import IndicatorEnrichment
 
 __all__ = [
     "IndicatorType",
@@ -134,6 +136,7 @@ __all__ = [
     "IndicatorStatus",
     "Indicator",
     "IndicatorSource",
+    "IndicatorEnrichment",
     "Alert",
     "AuditLog"
 ]

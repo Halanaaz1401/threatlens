@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     # Phase 4A Correlation Engine
     CORRELATION_WINDOW_MINUTES: int = int(os.getenv("CORRELATION_WINDOW_MINUTES", "15"))
 
+    # Phase 4B Threat Intelligence Enrichment
+    VIRUSTOTAL_API_KEY: str = os.getenv("VIRUSTOTAL_API_KEY", "")
+    ABUSEIPDB_API_KEY: str = os.getenv("ABUSEIPDB_API_KEY", "")
+    OTX_API_KEY: str = os.getenv("OTX_API_KEY", "")
+    THREAT_INTEL_CACHE_TTL_MINUTES: int = int(os.getenv("THREAT_INTEL_CACHE_TTL_MINUTES", "60"))
+    REDIS_ENRICHMENT_CHANNEL: str = os.getenv("REDIS_ENRICHMENT_CHANNEL", "threatlens:events:enrichment")
+
     # Elasticsearch Configuration
     ELASTICSEARCH_URL: str = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
     ELASTICSEARCH_USERNAME: str = os.getenv("ELASTICSEARCH_USERNAME", "")
