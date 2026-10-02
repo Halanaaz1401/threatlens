@@ -19,6 +19,7 @@ from app.models.incident import (
     IncidentStatus,
     SecurityEvent,
 )
+from app.models.relationship import IndicatorRelationship, RelationshipType
 from app.models.enrichment import IndicatorEnrichment
 from app.models.feed import Feed
 from app.models.audit import AuditLog
@@ -31,6 +32,8 @@ __all__ = [
     "IndicatorType",
     "ThreatSeverity",
     "IndicatorStatus",
+    "IndicatorRelationship",
+    "RelationshipType",
     "IndicatorEnrichment",
     "Alert",
     "AlertSeverity",
@@ -45,3 +48,4 @@ __all__ = [
     "User",
     "Role",
 ]
+

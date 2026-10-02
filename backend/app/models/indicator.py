@@ -112,6 +112,18 @@ class Indicator(Base):
     sources = relationship("IndicatorSource", back_populates="indicator", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="indicator", foreign_keys="[Alert.indicator_id]")
     enrichments = relationship("IndicatorEnrichment", back_populates="indicator", cascade="all, delete-orphan")
+    outgoing_relationships = relationship(
+        "IndicatorRelationship",
+        foreign_keys="[IndicatorRelationship.source_indicator_id]",
+        back_populates="source_indicator",
+        cascade="all, delete-orphan"
+    )
+    incoming_relationships = relationship(
+        "IndicatorRelationship",
+        foreign_keys="[IndicatorRelationship.target_indicator_id]",
+        back_populates="target_indicator",
+        cascade="all, delete-orphan"
+    )
 
 class IndicatorSource(Base):
     __tablename__ = "indicator_sources"

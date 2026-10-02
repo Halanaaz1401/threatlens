@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     audit,
     websocket,
     analytics,
+    hunting,
 )
 
 api_router = APIRouter()
@@ -23,6 +24,7 @@ api_router.include_router(incidents.router, prefix="/incidents", tags=["Incident
 api_router.include_router(feeds.router, prefix="/feeds", tags=["Threat Feeds"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])
 api_router.include_router(enrichment.router, prefix="/enrichment", tags=["Enrichment"])
+api_router.include_router(hunting.router, prefix="/hunting", tags=["Hunting"])
 api_router.include_router(analytics.router, tags=["Analytics"])
 api_router.include_router(export.router, prefix="/export", tags=["Export"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])

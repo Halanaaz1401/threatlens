@@ -2,13 +2,21 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRole, UserRole } from "@/context/RoleContext";
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { role, setRole, persona } = useRole();
   const [searchVal, setSearchVal] = useState("");
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchVal.trim()) {
+      router.push(`/dashboard/hunting?q=${encodeURIComponent(searchVal.trim())}`);
+    }
+  };
 
   const navItems = [
     { label: "Home Hub", href: "/", icon: "🏠" },
@@ -47,10 +55,14 @@ export function Navbar() {
           </Link>
 
           {/* Search Box */}
-          <div className="relative hidden xl:block w-72">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-sm">
+          <form onSubmit={handleSearchSubmit} className="relative hidden xl:block w-72">
+            <button
+              type="submit"
+              className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-cyan-400 text-sm transition"
+              title="Search threat intelligence"
+            >
               🔍
-            </span>
+            </button>
             <input
               type="text"
               value={searchVal}
@@ -58,7 +70,7 @@ export function Navbar() {
               placeholder="Search IOCs, CVEs, ATT&CK IDs..."
               className="w-full bg-[#0d1527] border border-slate-700/70 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
             />
-          </div>
+          </form>
         </div>
 
         {/* Center: Navigation Links */}

@@ -66,3 +66,51 @@ export async function safeFetchGeoAnalytics() {
 export async function safeFetchIndicatorEnrichment(indicatorId: string) {
   return await apiGet(`/api/v1/indicators/${indicatorId}/enrichment`);
 }
+
+async function apiPost(path: string, body: any) {
+  const headers = {
+    ...getAuthHeaders(),
+    "Content-Type": "application/json",
+  };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try next host
+    }
+  }
+  return null;
+}
+
+export async function safeFetchIndicatorGraph(indicatorId: string, maxDepth: number = 2, minConfidence: number = 0) {
+  return await apiGet(`/api/v1/hunting/graph/${indicatorId}?max_depth=${maxDepth}&min_confidence=${minConfidence}`);
+}
+
+export async function safeFetchIndicatorRelationships(indicatorId: string, direction: string = "both", minConfidence: number = 0) {
+  return await apiGet(`/api/v1/hunting/indicators/${indicatorId}/relationships?direction=${direction}&min_confidence=${minConfidence}`);
+}
+
+export async function safeHuntingSearch(query: string) {
+  return await apiGet(`/api/v1/hunting/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function safeDeriveRelationships(indicatorId?: string) {
+  return await apiPost("/api/v1/hunting/derive", { indicator_id: indicatorId || null, limit: 50 });
+}
+
+export async function safeCreateRelationship(payload: {
+  source_indicator_id: string;
+  target_indicator_id: string;
+  relationship_type: string;
+  confidence?: number;
+  evidence?: string;
+}) {
+  return await apiPost("/api/v1/hunting/relationships", payload);
+}
