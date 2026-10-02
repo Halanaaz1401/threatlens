@@ -73,13 +73,14 @@ export function GlobalHeatmap() {
         if (data && data.has_data && Array.isArray(data.countries) && data.countries.length > 0) {
           setHasData(true);
           const mapped: ThreatLocation[] = [];
-          data.countries.forEach((c: { country: string; count: number }, idx: number) => {
-            const key = (c.country || "").toUpperCase().trim();
-            const coords = COUNTRY_COORDINATES[key];
+          data.countries.forEach((c: { country?: string; country_code?: string; country_name?: string; count: number }, idx: number) => {
+            const code = (c.country_code || c.country || "").toUpperCase().trim();
+            const name = c.country_name || c.country || code;
+            const coords = COUNTRY_COORDINATES[code] || COUNTRY_COORDINATES[name.toUpperCase()];
             if (coords) {
               mapped.push({
                 id: `geo-${idx}`,
-                name: c.country,
+                name: name,
                 lat: coords.lat,
                 lng: coords.lng,
                 count: c.count,

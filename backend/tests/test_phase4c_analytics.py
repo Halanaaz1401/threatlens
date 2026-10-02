@@ -305,6 +305,7 @@ def test_geographic_analytics_with_data(auth_headers):
         assert "DE" in codes
         de_entry = next(c for c in data["countries"] if c["country_code"] == "DE")
         assert de_entry["country_name"] == "Germany"
+        assert de_entry["country"] == "Germany"
         assert de_entry["count"] >= 1
     finally:
         db.close()

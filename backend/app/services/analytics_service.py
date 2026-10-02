@@ -452,6 +452,7 @@ def get_geographic_analytics(db: Session, limit: int = 10) -> Dict[str, Any]:
         countries.append({
             "country_code": code.upper(),
             "country_name": _country_code_to_name(code.upper()),
+            "country": _country_code_to_name(code.upper()),
             "count": count,
             "share_percentage": share
         })

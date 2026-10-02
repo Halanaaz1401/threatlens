@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import { safeFetchGeoAnalytics } from "@/lib/api";
 
 interface GeoCountry {
-  country: string;
+  country?: string;
+  country_code?: string;
+  country_name?: string;
   count: number;
 }
 
@@ -68,11 +70,12 @@ export function AttackHeatmap() {
         <div className="space-y-3.5">
           {geoData.countries.map((item, idx) => {
             const share = Math.round((item.count / total) * 100);
+            const displayName = item.country_name || item.country || item.country_code || `Location ${idx + 1}`;
             return (
-              <div key={item.country || idx} className="space-y-1.5">
+              <div key={item.country_code || item.country || idx} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-slate-300">{item.country}</span>
+                    <span className="font-mono font-bold text-slate-300">{displayName}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400 font-mono">{item.count.toLocaleString()} IoCs</span>

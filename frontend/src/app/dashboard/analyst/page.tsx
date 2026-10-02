@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
 import { getAuthHeaders, getAuthToken } from "@/lib/auth";
-import { safeFetchIndicatorEnrichment } from "@/lib/api";
+import { safeFetchIndicatorEnrichment, safeFetchIndicators } from "@/lib/api";
 
 interface IOCItem {
   id: string;
@@ -33,28 +33,13 @@ export default function AnalystDashboardPage() {
     try {
       setLoading(true);
       setFetchError(null);
-      let res = null;
-      const headers = { ...getAuthHeaders() };
-      try {
-        res = await fetch("http://127.0.0.1:8000/api/v1/indicators", { cache: "no-store", headers });
-      } catch {
-        res = await fetch("http://localhost:8000/api/v1/indicators", { cache: "no-store", headers });
-      }
-
-      if (res && res.ok) {
-        const data = await res.json();
-        const items = data.data || [];
-        setIndicators(items);
-        if (items.length > 0) {
-          setSelectedIOC(items[0]);
-          handleEnrich(items[0]);
-        } else {
-          setSelectedIOC(null);
-        }
+      const items = await safeFetchIndicators();
+      setIndicators(items);
+      if (items.length > 0) {
+        setSelectedIOC(items[0]);
+        handleEnrich(items[0]);
       } else {
-        setIndicators([]);
         setSelectedIOC(null);
-        setFetchError("Unable to retrieve indicators from backend. Ensure API is running and authenticated.");
       }
     } catch (err: any) {
       setIndicators([]);
@@ -72,9 +57,11 @@ export default function AnalystDashboardPage() {
     let socket: WebSocket | null = null;
     try {
       const token = getAuthToken();
+      const rawBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      const wsBase = rawBase.replace(/^http/, "ws");
       const wsUrl = token
-        ? `ws://127.0.0.1:8000/api/v1/ws/alerts?token=${encodeURIComponent(token)}`
-        : "ws://127.0.0.1:8000/api/v1/ws/alerts";
+        ? `${wsBase}/api/v1/ws/alerts?token=${encodeURIComponent(token)}`
+        : `${wsBase}/api/v1/ws/alerts`;
       socket = new WebSocket(wsUrl);
 
       socket.onmessage = (event) => {
