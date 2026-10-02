@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
 import { getAuthHeaders, getAuthToken } from "@/lib/auth";
 import { safeFetchIndicatorEnrichment, safeFetchIndicators } from "@/lib/api";
+import { DetectionRulesManager } from "@/components/DetectionRulesManager";
 
 interface IOCItem {
   id: string;
@@ -20,6 +21,7 @@ interface IOCItem {
 
 export default function AnalystDashboardPage() {
   const { persona } = useRole();
+  const [activeTab, setActiveTab] = useState<"queue" | "rules">("queue");
   const [indicators, setIndicators] = useState<IOCItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -234,8 +236,37 @@ export default function AnalystDashboardPage() {
         </div>
       </div>
 
-      {/* Main Grid: Queue Table + Enrichment Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* View Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+        <button
+          onClick={() => setActiveTab("queue")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeTab === "queue"
+              ? "bg-cyan-950/80 text-cyan-400 border border-cyan-800 shadow-sm"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <span>🛡️</span>
+          <span>Triage Queue &amp; Enrichment</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("rules")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeTab === "rules"
+              ? "bg-blue-950/80 text-blue-400 border border-blue-800 shadow-sm"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <span>⚙️</span>
+          <span>Detection Rules &amp; Alert Routing (FR-17 / FR-18)</span>
+        </button>
+      </div>
+
+      {activeTab === "rules" ? (
+        <DetectionRulesManager />
+      ) : (
+        /* Main Grid: Queue Table + Enrichment Inspector */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Triage Table */}
         <div className="lg:col-span-7 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
@@ -387,6 +418,7 @@ export default function AnalystDashboardPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

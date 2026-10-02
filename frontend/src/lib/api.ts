@@ -114,3 +114,86 @@ export async function safeCreateRelationship(payload: {
 }) {
   return await apiPost("/api/v1/hunting/relationships", payload);
 }
+
+async function apiPut(path: string, body: any) {
+  const headers = {
+    ...getAuthHeaders(),
+    "Content-Type": "application/json",
+  };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try next host
+    }
+  }
+  return null;
+}
+
+async function apiDelete(path: string) {
+  const headers = { ...getAuthHeaders() };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try next host
+    }
+  }
+  return null;
+}
+
+export async function safeFetchDetectionRules(params?: { enabled?: boolean; severity?: string }) {
+  let query = "";
+  const qparts: string[] = [];
+  if (params?.enabled !== undefined) qparts.push(`enabled=${params.enabled}`);
+  if (params?.severity) qparts.push(`severity=${params.severity}`);
+  if (qparts.length > 0) query = `?${qparts.join("&")}`;
+  const res = await apiGet(`/api/v1/detection-rules${query}`);
+  return res || [];
+}
+
+export async function safeFetchDetectionRule(id: string) {
+  return await apiGet(`/api/v1/detection-rules/${id}`);
+}
+
+export async function safeCreateDetectionRule(payload: any) {
+  return await apiPost("/api/v1/detection-rules", payload);
+}
+
+export async function safeUpdateDetectionRule(id: string, payload: any) {
+  return await apiPut(`/api/v1/detection-rules/${id}`, payload);
+}
+
+export async function safeDeleteDetectionRule(id: string) {
+  return await apiDelete(`/api/v1/detection-rules/${id}`);
+}
+
+export async function safeEnableDetectionRule(id: string) {
+  return await apiPost(`/api/v1/detection-rules/${id}/enable`, {});
+}
+
+export async function safeDisableDetectionRule(id: string) {
+  return await apiPost(`/api/v1/detection-rules/${id}/disable`, {});
+}
+
+export async function safeTestDetectionRule(payload: any) {
+  return await apiPost("/api/v1/detection-rules/test", payload);
+}
+
+export async function safeEvaluateIndicatorRules(indicatorId: string) {
+  return await apiPost(`/api/v1/detection-rules/evaluate/${indicatorId}`, {});
+}
+

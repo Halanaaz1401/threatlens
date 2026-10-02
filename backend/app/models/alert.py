@@ -37,6 +37,8 @@ class Alert(Base):
     
     # Context, matched rule name, assignee, telemetry
     rule_name = Column(String(100), default="DEFAULT_SEVERITY_THRESHOLD", nullable=False)
+    rule_id = Column(String(36), ForeignKey("detection_rules.id", ondelete="SET NULL"), nullable=True, index=True)
+    routed_to = Column(String(100), nullable=True, default="SOC_TIER_2")
     assignee = Column(String(100), nullable=True, default="Priya Nair")
     source = Column(String(100), default="ThreatLens Stream")
     mitre_technique = Column(String(50), default="T1071")
@@ -49,3 +51,4 @@ class Alert(Base):
 
     indicator = relationship("Indicator", back_populates="alerts", foreign_keys=[indicator_id], lazy="joined")
     incident = relationship("Incident", back_populates="alerts", foreign_keys=[incident_id])
+    detection_rule = relationship("DetectionRule", back_populates="alerts", foreign_keys=[rule_id])
