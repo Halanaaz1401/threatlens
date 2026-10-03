@@ -43,9 +43,36 @@ class FeedConfigUpdate(BaseModel):
     poll_interval_seconds: Optional[int] = Field(None, ge=60, le=86400)
     endpoint_url: Optional[str] = None
     enabled: Optional[bool] = None
+    taxii_api_root: Optional[str] = None
+    taxii_collection_id: Optional[str] = None
+    taxii_username: Optional[str] = None
+    taxii_password: Optional[str] = None
 
 class FeedToggle(BaseModel):
     enabled: bool
+
+class TaxiiDiscoveryRequest(BaseModel):
+    server_url: str = Field(..., description="TAXII 2.1 server root or discovery URL")
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+class TaxiiCollectionsRequest(BaseModel):
+    api_root_url: str = Field(..., description="TAXII 2.1 API Root URL")
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+class TaxiiFeedCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+    display_name: str = Field(..., min_length=2, max_length=100)
+    provider: Optional[str] = "TAXII 2.1 Provider"
+    endpoint_url: str = Field(..., description="TAXII 2.1 Collection objects URL")
+    taxii_api_root: Optional[str] = None
+    taxii_collection_id: Optional[str] = None
+    taxii_username: Optional[str] = None
+    taxii_password: Optional[str] = None
+    description: Optional[str] = None
+    poll_interval_seconds: int = 3600
+    enabled: bool = True
 
 def serialize_feed(feed: Feed) -> Dict[str, Any]:
     """Serialize feed safely without exposing API secrets or authorization headers."""
@@ -66,6 +93,11 @@ def serialize_feed(feed: Feed) -> Dict[str, Any]:
         "error_message": feed.error_message,
         "total_indicators_ingested": feed.total_indicators_ingested or 0,
         "last_ingested_count": feed.last_ingested_count or 0,
+        "taxii_api_root": getattr(feed, "taxii_api_root", None),
+        "taxii_collection_id": getattr(feed, "taxii_collection_id", None),
+        "taxii_version": getattr(feed, "taxii_version", "2.1"),
+        "last_added_after": getattr(feed, "last_added_after", None),
+        "has_taxii_credentials": bool(getattr(feed, "taxii_username", None) and getattr(feed, "taxii_password_hash", None)),
         "created_at": feed.created_at.isoformat() if feed.created_at else None,
         "updated_at": feed.updated_at.isoformat() if feed.updated_at else None,
     }
@@ -237,6 +269,20 @@ def update_feed_config(
         feed.enabled = config_in.enabled
         feed.status = "active" if config_in.enabled else "disabled"
 
+    if config_in.taxii_api_root is not None:
+        changes["taxii_api_root"] = {"old": feed.taxii_api_root, "new": config_in.taxii_api_root}
+        feed.taxii_api_root = config_in.taxii_api_root
+
+    if config_in.taxii_collection_id is not None:
+        changes["taxii_collection_id"] = {"old": feed.taxii_collection_id, "new": config_in.taxii_collection_id}
+        feed.taxii_collection_id = config_in.taxii_collection_id
+
+    if config_in.taxii_username is not None:
+        feed.taxii_username = config_in.taxii_username
+
+    if config_in.taxii_password is not None:
+        feed.taxii_password_hash = config_in.taxii_password
+
     feed.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     db.refresh(feed)
@@ -320,6 +366,9 @@ async def trigger_single_feed_fetch(
         res = await fetch_cisa_kev_cves(db)
     elif feed_name in ["otx", "alienvault_otx"]:
         res = await fetch_alienvault_otx_indicators(db)
+    elif feed.feed_type == "taxii2.1" or feed.taxii_collection_id or feed_name.startswith("taxii"):
+        from app.services.taxii_service import poll_taxii_collection
+        res = await poll_taxii_collection(db, feed)
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported feed '{feed_name}'")
 
@@ -338,6 +387,110 @@ async def trigger_single_feed_fetch(
         pass
 
     return {"status": "success", "feed": serialize_feed(feed), "result": res}
+
+
+# ===========================================================================
+# TAXII 2.1 Management Endpoints (FR-04)
+# ===========================================================================
+
+@router.post("/taxii/discover", response_model=Dict[str, Any])
+async def taxii_discover(
+    payload: TaxiiDiscoveryRequest,
+    current_user: User = Depends(require_engineer)
+):
+    """
+    Perform TAXII 2.1 server discovery (Security Engineer+).
+    Queries server root /taxii2/ and retrieves available API roots.
+    """
+    from app.services.taxii_service import discover_taxii_server
+    try:
+        discovery_info = await discover_taxii_server(
+            server_url=payload.server_url,
+            username=payload.username,
+            password=payload.password
+        )
+        return discovery_info
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"TAXII discovery failed: {str(e)}"
+        )
+
+
+@router.post("/taxii/collections", response_model=List[Dict[str, Any]])
+async def taxii_collections(
+    payload: TaxiiCollectionsRequest,
+    current_user: User = Depends(require_engineer)
+):
+    """
+    Discover collections available within a TAXII 2.1 API Root (Security Engineer+).
+    """
+    from app.services.taxii_service import get_taxii_collections
+    try:
+        cols = await get_taxii_collections(
+            api_root_url=payload.api_root_url,
+            username=payload.username,
+            password=payload.password
+        )
+        return cols
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to fetch TAXII collections: {str(e)}"
+        )
+
+
+@router.post("/taxii", response_model=Dict[str, Any])
+def create_taxii_feed(
+    payload: TaxiiFeedCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_engineer)
+):
+    """
+    Register a new TAXII 2.1 Collection feed (Security Engineer+).
+    """
+    clean_name = payload.name.strip().lower().replace(" ", "_")
+    existing = db.query(Feed).filter(Feed.name == clean_name).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Feed with name '{clean_name}' already exists"
+        )
+
+    new_feed = Feed(
+        name=clean_name,
+        display_name=payload.display_name.strip(),
+        provider=payload.provider or "TAXII 2.1 Provider",
+        feed_type="taxii2.1",
+        endpoint_url=payload.endpoint_url.strip(),
+        taxii_api_root=payload.taxii_api_root.strip() if payload.taxii_api_root else None,
+        taxii_collection_id=payload.taxii_collection_id.strip() if payload.taxii_collection_id else None,
+        taxii_username=payload.taxii_username.strip() if payload.taxii_username else None,
+        taxii_password_hash=payload.taxii_password.strip() if payload.taxii_password else None,
+        description=payload.description,
+        poll_interval_seconds=payload.poll_interval_seconds or 3600,
+        enabled=payload.enabled,
+        status="active" if payload.enabled else "disabled",
+    )
+    db.add(new_feed)
+    db.commit()
+    db.refresh(new_feed)
+
+    try:
+        log_action(
+            db=db,
+            action="TAXII_FEED_REGISTERED",
+            actor=current_user.email,
+            user_id=current_user.id,
+            target_resource=f"feed:{clean_name}",
+            details={"name": clean_name, "collection_id": payload.taxii_collection_id},
+            request=request
+        )
+    except Exception:
+        pass
+
+    return {"status": "success", "message": f"TAXII feed '{clean_name}' registered", "feed": serialize_feed(new_feed)}
 
 @router.post("/fetch")
 @router.post("/fetch-feed")

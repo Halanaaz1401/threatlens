@@ -77,11 +77,23 @@ class SecurityEvent(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    provider = Column(String(50), nullable=True, index=True)  # splunk, qradar, sentinel, crowdstrike, elastic
+    external_event_id = Column(String(100), nullable=True, index=True)
+    dedup_key = Column(String(150), nullable=True, unique=True, index=True)  # provider:external_event_id
     source_ip = Column(String(50), nullable=True)
     destination_ip = Column(String(50), nullable=True)
     domain = Column(String(255), nullable=True)
+    url = Column(String(500), nullable=True)
     file_hash = Column(String(128), nullable=True)
+    hostname = Column(String(100), nullable=True)
+    username = Column(String(100), nullable=True)
     event_type = Column(String(50), default="NETWORK_TRAFFIC", nullable=False)
+    severity = Column(String(50), default="MEDIUM", nullable=False)
+    description = Column(Text, nullable=True)
+    mitre_technique = Column(String(50), nullable=True)
+    status = Column(String(50), default="INGESTED", nullable=False)  # INGESTED, DEDUPLICATED, ALERT_GENERATED, CORRELATED
+    created_alert_id = Column(String(36), nullable=True)
+    created_indicator_id = Column(String(36), nullable=True)
     raw_log = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 

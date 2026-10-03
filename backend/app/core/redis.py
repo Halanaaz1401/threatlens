@@ -274,10 +274,27 @@ def publish_feed_event(event_type: str, data: dict) -> bool:
     }
     return redis_manager.publish_event(settings.REDIS_FEED_CHANNEL, payload)
 
+def publish_security_event(event_type: str, data: dict) -> bool:
+    """
+    Publish structured inbound SIEM/EDR or TAXII integration event (Phase 4D-D).
+    Events: SECURITY_EVENT_INGESTED, SECURITY_EVENT_DEDUPLICATED, SECURITY_EVENT_REJECTED,
+            TAXII_POLL_STARTED, TAXII_POLL_SUCCEEDED, TAXII_POLL_FAILED.
+    """
+    from datetime import datetime, timezone
+    payload = {
+        "type": event_type,
+        "event": event_type,
+        "channel": settings.REDIS_INTEGRATION_CHANNEL,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data,
+    }
+    return redis_manager.publish_event(settings.REDIS_INTEGRATION_CHANNEL, payload)
+
 __all__ = [
     "redis_manager",
     "RedisManager",
     "publish_enrichment_event",
     "publish_ioc_event",
-    "publish_feed_event"
+    "publish_feed_event",
+    "publish_security_event"
 ]

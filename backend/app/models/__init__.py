@@ -23,6 +23,7 @@ from app.models.relationship import IndicatorRelationship, RelationshipType
 from app.models.detection_rule import DetectionRule, RuleSeverity, RuleRoutingQueue
 from app.models.enrichment import IndicatorEnrichment
 from app.models.feed import Feed
+from app.models.integration import WebhookConfig
 from app.models.audit import AuditLog
 from app.models.user import User, Role
 
@@ -48,6 +49,7 @@ __all__ = [
     "IncidentStatus",
     "SecurityEvent",
     "Feed",
+    "WebhookConfig",
     "AuditLog",
     "User",
     "Role",

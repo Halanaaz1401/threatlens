@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     REDIS_RULE_CHANNEL: str = os.getenv("REDIS_RULE_CHANNEL", "threatlens:events:rules")
     REDIS_IOC_CHANNEL: str = os.getenv("REDIS_IOC_CHANNEL", "threatlens:events:indicators")
     REDIS_FEED_CHANNEL: str = os.getenv("REDIS_FEED_CHANNEL", "threatlens:events:feeds")
+    REDIS_INTEGRATION_CHANNEL: str = os.getenv("REDIS_INTEGRATION_CHANNEL", "threatlens:events:integrations")
+
+    # Inbound Integrations & Webhooks (Phase 4D-D)
+    WEBHOOK_MAX_PAYLOAD_BYTES: int = int(os.getenv("WEBHOOK_MAX_PAYLOAD_BYTES", "524288"))  # 512 KB
+    WEBHOOK_ALLOWED_CLOCK_SKEW_SECONDS: int = int(os.getenv("WEBHOOK_ALLOWED_CLOCK_SKEW_SECONDS", "300"))  # 5 mins
 
     # Phase 4A Correlation Engine
     CORRELATION_WINDOW_MINUTES: int = int(os.getenv("CORRELATION_WINDOW_MINUTES", "15"))

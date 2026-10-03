@@ -75,6 +75,19 @@ DEFAULT_FEEDS_CONFIG = [
         "enabled": True,
         "poll_interval_seconds": 3600,
     },
+    {
+        "name": "taxii2_anomali_limo",
+        "display_name": "Anomali Limo TAXII 2.1",
+        "provider": "Anomali Limo",
+        "feed_type": "taxii2.1",
+        "endpoint_url": "https://limo.anomali.com/api/v1/taxii2/feeds/collections/107/objects/",
+        "description": "Public TAXII 2.1 STIX threat intelligence collection from Anomali Limo",
+        "enabled": False,
+        "poll_interval_seconds": 3600,
+        "taxii_api_root": "https://limo.anomali.com/api/v1/taxii2/feeds/",
+        "taxii_collection_id": "107",
+        "taxii_version": "2.1",
+    },
 ]
 
 def ensure_default_feeds(db: Session) -> List[Feed]:
@@ -93,6 +106,9 @@ def ensure_default_feeds(db: Session) -> List[Feed]:
                 enabled=cfg["enabled"],
                 status="active" if cfg["enabled"] else "disabled",
                 poll_interval_seconds=cfg["poll_interval_seconds"],
+                taxii_api_root=cfg.get("taxii_api_root"),
+                taxii_collection_id=cfg.get("taxii_collection_id"),
+                taxii_version=cfg.get("taxii_version", "2.1"),
                 total_indicators_ingested=0,
                 last_ingested_count=0
             )
@@ -110,6 +126,10 @@ def ensure_default_feeds(db: Session) -> List[Feed]:
                 f.endpoint_url = cfg["endpoint_url"]
             if not f.description:
                 f.description = cfg["description"]
+            if not f.taxii_api_root and cfg.get("taxii_api_root"):
+                f.taxii_api_root = cfg.get("taxii_api_root")
+            if not f.taxii_collection_id and cfg.get("taxii_collection_id"):
+                f.taxii_collection_id = cfg.get("taxii_collection_id")
             if not f.status:
                 f.status = "active" if f.enabled else "disabled"
     if created:

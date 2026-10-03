@@ -250,4 +250,36 @@ export async function safeTriggerFeedFetch(source: string = "all") {
   return await apiPost(`/api/v1/feeds/fetch?source=${encodeURIComponent(source)}`, {});
 }
 
+export async function safeFetchWebhooks() {
+  const res = await apiGet("/api/v1/integrations/webhooks");
+  return res || [];
+}
 
+export async function safeEnableWebhook(provider: string) {
+  return await apiPost(`/api/v1/integrations/webhooks/${provider}/enable`, {});
+}
+
+export async function safeDisableWebhook(provider: string) {
+  return await apiPost(`/api/v1/integrations/webhooks/${provider}/disable`, {});
+}
+
+export async function safeDiscoverTaxii(serverUrl: string, username?: string, password?: string) {
+  return await apiPost("/api/v1/feeds/taxii/discover", {
+    server_url: serverUrl,
+    username: username || undefined,
+    password: password || undefined,
+  });
+}
+
+export async function safeFetchTaxiiCollections(serverUrl: string, apiRoot: string, username?: string, password?: string) {
+  return await apiPost("/api/v1/feeds/taxii/collections", {
+    server_url: serverUrl,
+    api_root: apiRoot,
+    username: username || undefined,
+    password: password || undefined,
+  });
+}
+
+export async function safeCreateTaxiiFeed(payload: any) {
+  return await apiPost("/api/v1/feeds/taxii", payload);
+}

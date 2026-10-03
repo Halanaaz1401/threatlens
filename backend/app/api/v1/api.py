@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     analytics,
     hunting,
     detection_rules,
+    integrations,
 )
 
 api_router = APIRouter()
@@ -23,6 +24,7 @@ api_router.include_router(indicators.router, prefix="/indicators", tags=["Indica
 api_router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 api_router.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
 api_router.include_router(feeds.router, prefix="/feeds", tags=["Threat Feeds"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])
 api_router.include_router(enrichment.router, prefix="/enrichment", tags=["Enrichment"])
 api_router.include_router(hunting.router, prefix="/hunting", tags=["Hunting"])
