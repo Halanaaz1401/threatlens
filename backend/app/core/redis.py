@@ -232,16 +232,52 @@ def publish_enrichment_event(event_type: str, data: dict) -> bool:
     Events: ENRICHMENT_STARTED, ENRICHMENT_COMPLETED, ENRICHMENT_PARTIAL, ENRICHMENT_FAILED.
     Publishes to REDIS_ENRICHMENT_CHANNEL and REDIS_ALERT_CHANNEL for real-time frontend streaming.
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
     payload = {
         "type": event_type,
         "event": event_type,
         "channel": settings.REDIS_ENRICHMENT_CHANNEL,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": data,
     }
     res1 = redis_manager.publish_event(settings.REDIS_ENRICHMENT_CHANNEL, payload)
     res2 = redis_manager.publish_event(settings.REDIS_ALERT_CHANNEL, payload)
     return res1 or res2
 
-__all__ = ["redis_manager", "RedisManager", "publish_enrichment_event"]
+def publish_ioc_event(event_type: str, data: dict) -> bool:
+    """
+    Publish structured IOC lifecycle/TTL event (Phase 4D-C).
+    Events: IOC_CREATED, IOC_UPDATED, IOC_EXPIRED, IOC_REVOKED.
+    """
+    from datetime import datetime, timezone
+    payload = {
+        "type": event_type,
+        "event": event_type,
+        "channel": settings.REDIS_IOC_CHANNEL,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data,
+    }
+    return redis_manager.publish_event(settings.REDIS_IOC_CHANNEL, payload)
+
+def publish_feed_event(event_type: str, data: dict) -> bool:
+    """
+    Publish structured threat feed management event (Phase 4D-C).
+    Events: FEED_ENABLED, FEED_DISABLED, FEED_FETCH_STARTED, FEED_FETCH_SUCCEEDED, FEED_FETCH_FAILED.
+    """
+    from datetime import datetime, timezone
+    payload = {
+        "type": event_type,
+        "event": event_type,
+        "channel": settings.REDIS_FEED_CHANNEL,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data,
+    }
+    return redis_manager.publish_event(settings.REDIS_FEED_CHANNEL, payload)
+
+__all__ = [
+    "redis_manager",
+    "RedisManager",
+    "publish_enrichment_event",
+    "publish_ioc_event",
+    "publish_feed_event"
+]

@@ -2,15 +2,171 @@ import httpx
 import logging
 import asyncio
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
 from app.models.indicator import Indicator, IndicatorType, ThreatSeverity, IndicatorStatus, IndicatorSource
+from app.models.feed import Feed
 from app.services.scoring_service import calculate_ioc_severity
 from app.services.search_service import index_indicator
 from app.services.alert_service import evaluate_ioc_for_alerts
+from app.core.redis import publish_feed_event
 
 logger = logging.getLogger("threatlens.feed_service")
+
+DEFAULT_FEEDS_CONFIG = [
+    {
+        "name": "urlhaus",
+        "display_name": "URLhaus Recent Malware URLs",
+        "provider": "abuse.ch",
+        "feed_type": "url",
+        "endpoint_url": "https://urlhaus.abuse.ch/downloads/json_recent/",
+        "description": "Live repository of malicious URLs used for malware distribution",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+    {
+        "name": "threatfox",
+        "display_name": "ThreatFox Multi-Type IOCs",
+        "provider": "abuse.ch",
+        "feed_type": "multi",
+        "endpoint_url": "https://threatfox-api.abuse.ch/api/v1/",
+        "description": "Free platform for sharing IOCs associated with malware and botnets",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+    {
+        "name": "feodo_tracker",
+        "display_name": "Feodo Tracker Botnet C2",
+        "provider": "abuse.ch",
+        "feed_type": "ip",
+        "endpoint_url": "https://feodotracker.abuse.ch/downloads/ipblocklist_recent.json",
+        "description": "Real-time list of active botnet Command & Control (C2) servers",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+    {
+        "name": "malwarebazaar",
+        "display_name": "MalwareBazaar Sample Hashes",
+        "provider": "abuse.ch",
+        "feed_type": "hash",
+        "endpoint_url": "https://mb-api.abuse.ch/api/v1/",
+        "description": "Catalog of recent malware sample cryptographic hashes",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+    {
+        "name": "cisa_kev",
+        "display_name": "CISA Known Exploited Vulnerabilities",
+        "provider": "CISA",
+        "feed_type": "cve",
+        "endpoint_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+        "description": "Official authoritative catalog of vulnerabilities actively exploited in the wild",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+    {
+        "name": "alienvault_otx",
+        "display_name": "AlienVault OTX Threat Pulses",
+        "provider": "AlienVault",
+        "feed_type": "multi",
+        "endpoint_url": "https://otx.alienvault.com/api/v1/pulses/activity",
+        "description": "Crowdsourced open threat intelligence community pulses",
+        "enabled": True,
+        "poll_interval_seconds": 3600,
+    },
+]
+
+def ensure_default_feeds(db: Session) -> List[Feed]:
+    """Ensure all canonical threat feeds exist in database with rich metadata."""
+    existing_feeds = {f.name: f for f in db.query(Feed).all()}
+    created = False
+    for cfg in DEFAULT_FEEDS_CONFIG:
+        if cfg["name"] not in existing_feeds:
+            feed = Feed(
+                name=cfg["name"],
+                display_name=cfg["display_name"],
+                provider=cfg["provider"],
+                feed_type=cfg["feed_type"],
+                endpoint_url=cfg["endpoint_url"],
+                description=cfg["description"],
+                enabled=cfg["enabled"],
+                status="active" if cfg["enabled"] else "disabled",
+                poll_interval_seconds=cfg["poll_interval_seconds"],
+                total_indicators_ingested=0,
+                last_ingested_count=0
+            )
+            db.add(feed)
+            created = True
+        else:
+            f = existing_feeds[cfg["name"]]
+            if not f.display_name:
+                f.display_name = cfg["display_name"]
+            if not f.provider:
+                f.provider = cfg["provider"]
+            if not f.feed_type:
+                f.feed_type = cfg["feed_type"]
+            if not f.endpoint_url:
+                f.endpoint_url = cfg["endpoint_url"]
+            if not f.description:
+                f.description = cfg["description"]
+            if not f.status:
+                f.status = "active" if f.enabled else "disabled"
+    if created:
+        db.commit()
+    return db.query(Feed).all()
+
+def update_feed_stats(
+    db: Session,
+    feed_name: str,
+    success: bool,
+    count: int = 0,
+    error: Optional[str] = None
+) -> None:
+    """Safely record honest operational ingestion stats into Feed row without exposing secrets."""
+    try:
+        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
+        feed = db.query(Feed).filter(Feed.name == feed_name).first()
+        if not feed:
+            feed = Feed(name=feed_name, enabled=True, poll_interval_seconds=3600)
+            db.add(feed)
+            db.flush()
+
+        feed.last_attempted_fetch_at = now_dt
+        feed.last_polled_at = now_dt
+        if success:
+            feed.status = "active" if feed.enabled else "disabled"
+            feed.last_successful_fetch_at = now_dt
+            feed.last_ingested_count = count
+            feed.total_indicators_ingested = (feed.total_indicators_ingested or 0) + count
+            feed.error_message = None
+            publish_feed_event("FEED_FETCH_SUCCEEDED", {
+                "feed_name": feed_name,
+                "count": count,
+                "timestamp": now_dt.isoformat(),
+            })
+        else:
+            feed.status = "failing"
+            safe_error = str(error) if error else "Unknown error"
+            # Strip secrets / headers if present
+            if len(safe_error) > 500:
+                safe_error = safe_error[:500] + "..."
+            feed.error_message = safe_error
+            publish_feed_event("FEED_FETCH_FAILED", {
+                "feed_name": feed_name,
+                "error": safe_error,
+                "timestamp": now_dt.isoformat(),
+            })
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error updating feed stats for {feed_name}: {e}")
+
+def is_feed_enabled(db: Session, feed_name: str) -> bool:
+    """Check if feed is enabled before initiating fetch."""
+    feed = db.query(Feed).filter(Feed.name == feed_name).first()
+    if feed is not None:
+        return bool(feed.enabled)
+    return True
 
 def _save_and_index_ioc(
     db: Session,
@@ -24,7 +180,7 @@ def _save_and_index_ioc(
 ) -> str:
     """
     Helper function to normalize, validate, deduplicate, score,
-    record provenance, save to DB, index in Elasticsearch, and trigger Alert Engine.
+    record provenance, assign TTL, save to DB, index in Elasticsearch, and trigger Alert Engine.
     """
     if not value or not str(value).strip():
         return "invalid"
@@ -39,6 +195,10 @@ def _save_and_index_ioc(
         if existing:
             existing.sightings = (existing.sightings or 1) + 1
             existing.last_seen = now_dt
+            # Refresh TTL on fresh sighting
+            existing.expires_at = now_dt + timedelta(days=existing.ttl_days or 30)
+            if existing.status == IndicatorStatus.EXPIRED.value:
+                existing.status = IndicatorStatus.ACTIVE.value
             
             # Record per-source provenance sighting
             try:
@@ -88,6 +248,8 @@ def _save_and_index_ioc(
             tags=tags or [],
             context=context or {},
             mitre_technique=mitre_technique,
+            expires_at=now_dt + timedelta(days=30),
+            ttl_days=30,
             sightings=1,
             first_seen=now_dt,
             last_seen=now_dt
@@ -110,7 +272,7 @@ def _save_and_index_ioc(
         db.commit()
         db.refresh(new_ioc)
 
-        # Trigger Real-Time Alert Engine (evaluates thresholds and publishes to Redis Pub/Sub)
+        # Trigger Real-Time Alert Engine
         evaluate_ioc_for_alerts(db, new_ioc)
 
         # Project to Elasticsearch
@@ -125,6 +287,7 @@ def _save_and_index_ioc(
                 "threat_score": new_ioc.threat_score,
                 "confidence": new_ioc.confidence,
                 "tags": new_ioc.tags,
+                "expires_at": new_ioc.expires_at.isoformat() if new_ioc.expires_at else None,
                 "created_at": new_ioc.first_seen.isoformat() if new_ioc.first_seen else None
             })
         except Exception as es_err:
@@ -141,11 +304,16 @@ def _save_and_index_ioc(
 # 1. URLhaus Feed (URLs)
 # -------------------------------------------------------------
 async def fetch_urlhaus_recent_urls(db: Session, limit: int = 10) -> Dict[str, Any]:
+    if not is_feed_enabled(db, "urlhaus"):
+        return {"source": "urlhaus", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "urlhaus"})
     url = "https://urlhaus.abuse.ch/downloads/json_recent/"
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
+                update_feed_stats(db, "urlhaus", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "urlhaus", "status": "failed", "status_code": response.status_code}
             
             data = response.json()
@@ -176,25 +344,33 @@ async def fetch_urlhaus_recent_urls(db: Session, limit: int = 10) -> Dict[str, A
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed URLhaus row: {row_err}")
 
+            update_feed_stats(db, "urlhaus", success=True, count=count)
             return {"source": "urlhaus", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"URLhaus fetch failed: {e}")
+        update_feed_stats(db, "urlhaus", success=False, error=str(e))
         return {"source": "urlhaus", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------
 # 2. ThreatFox Feed (Multi-type IOCs: IP, Domain, URL, Hashes)
 # -------------------------------------------------------------
 async def fetch_threatfox_recent_iocs(db: Session, limit: int = 10) -> Dict[str, Any]:
+    if not is_feed_enabled(db, "threatfox"):
+        return {"source": "threatfox", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "threatfox"})
     url = "https://threatfox-api.abuse.ch/api/v1/"
     payload = {"query": "get_iocs", "days": 1}
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(url, json=payload)
             if response.status_code != 200:
+                update_feed_stats(db, "threatfox", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "threatfox", "status": "failed", "status_code": response.status_code}
             
             data = response.json()
             if data.get("query_status") != "ok":
+                update_feed_stats(db, "threatfox", success=True, count=0)
                 return {"source": "threatfox", "status": "no_data"}
             
             count = 0
@@ -231,20 +407,27 @@ async def fetch_threatfox_recent_iocs(db: Session, limit: int = 10) -> Dict[str,
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed ThreatFox row: {row_err}")
 
+            update_feed_stats(db, "threatfox", success=True, count=count)
             return {"source": "threatfox", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"ThreatFox fetch failed: {e}")
+        update_feed_stats(db, "threatfox", success=False, error=str(e))
         return {"source": "threatfox", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------
 # 3. Feodo Tracker Feed (Botnet C2 IPs)
 # -------------------------------------------------------------
 async def fetch_feodo_tracker_ips(db: Session, limit: int = 10) -> Dict[str, Any]:
+    if not is_feed_enabled(db, "feodo_tracker"):
+        return {"source": "feodo_tracker", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "feodo_tracker"})
     url = "https://feodotracker.abuse.ch/downloads/ipblocklist_recent.json"
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
+                update_feed_stats(db, "feodo_tracker", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "feodo_tracker", "status": "failed", "status_code": response.status_code}
             
             data = response.json()
@@ -268,25 +451,33 @@ async def fetch_feodo_tracker_ips(db: Session, limit: int = 10) -> Dict[str, Any
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed Feodo row: {row_err}")
 
+            update_feed_stats(db, "feodo_tracker", success=True, count=count)
             return {"source": "feodo_tracker", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"Feodo Tracker fetch failed: {e}")
+        update_feed_stats(db, "feodo_tracker", success=False, error=str(e))
         return {"source": "feodo_tracker", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------
 # 4. MalwareBazaar Feed (SHA256 Malware Hashes)
 # -------------------------------------------------------------
 async def fetch_malwarebazaar_recent_hashes(db: Session, limit: int = 10) -> Dict[str, Any]:
+    if not is_feed_enabled(db, "malwarebazaar"):
+        return {"source": "malwarebazaar", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "malwarebazaar"})
     url = "https://mb-api.abuse.ch/api/v1/"
     payload = {"query": "get_recent", "selector": "time"}
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(url, data=payload)
             if response.status_code != 200:
+                update_feed_stats(db, "malwarebazaar", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "malwarebazaar", "status": "failed", "status_code": response.status_code}
             
             data = response.json()
             if data.get("query_status") != "ok":
+                update_feed_stats(db, "malwarebazaar", success=True, count=0)
                 return {"source": "malwarebazaar", "status": "no_data"}
             
             count = 0
@@ -309,9 +500,11 @@ async def fetch_malwarebazaar_recent_hashes(db: Session, limit: int = 10) -> Dic
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed MalwareBazaar row: {row_err}")
 
+            update_feed_stats(db, "malwarebazaar", success=True, count=count)
             return {"source": "malwarebazaar", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"MalwareBazaar fetch failed: {e}")
+        update_feed_stats(db, "malwarebazaar", success=False, error=str(e))
         return {"source": "malwarebazaar", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------
@@ -319,11 +512,16 @@ async def fetch_malwarebazaar_recent_hashes(db: Session, limit: int = 10) -> Dic
 # -------------------------------------------------------------
 async def fetch_cisa_kev_cves(db: Session, limit: int = 10) -> Dict[str, Any]:
     """Ingest actively exploited CVEs from the official CISA KEV catalog."""
+    if not is_feed_enabled(db, "cisa_kev"):
+        return {"source": "cisa_kev", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "cisa_kev"})
     url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
+                update_feed_stats(db, "cisa_kev", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "cisa_kev", "status": "failed", "status_code": response.status_code}
             
             data = response.json()
@@ -352,9 +550,11 @@ async def fetch_cisa_kev_cves(db: Session, limit: int = 10) -> Dict[str, Any]:
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed CISA KEV row: {row_err}")
 
+            update_feed_stats(db, "cisa_kev", success=True, count=count)
             return {"source": "cisa_kev", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"CISA KEV fetch failed: {e}")
+        update_feed_stats(db, "cisa_kev", success=False, error=str(e))
         return {"source": "cisa_kev", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------
@@ -362,12 +562,16 @@ async def fetch_cisa_kev_cves(db: Session, limit: int = 10) -> Dict[str, Any]:
 # -------------------------------------------------------------
 async def fetch_alienvault_otx_indicators(db: Session, limit: int = 10) -> Dict[str, Any]:
     """Ingest community threat pulses from AlienVault OTX."""
+    if not is_feed_enabled(db, "alienvault_otx"):
+        return {"source": "alienvault_otx", "status": "disabled", "message": "Feed is disabled"}
+
+    publish_feed_event("FEED_FETCH_STARTED", {"feed_name": "alienvault_otx"})
     url = "https://otx.alienvault.com/api/v1/pulses/activity"
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
-                # If OTX public endpoint requires key or rate-limited, report cleanly
+                update_feed_stats(db, "alienvault_otx", success=False, error=f"HTTP {response.status_code}")
                 return {"source": "alienvault_otx", "status": "rate_limited_or_auth_required", "status_code": response.status_code}
             
             data = response.json()
@@ -407,9 +611,11 @@ async def fetch_alienvault_otx_indicators(db: Session, limit: int = 10) -> Dict[
                 except Exception as row_err:
                     logger.debug(f"Skipping malformed OTX row: {row_err}")
 
+            update_feed_stats(db, "alienvault_otx", success=True, count=count)
             return {"source": "alienvault_otx", "status": "success", "new_indicators": count}
     except Exception as e:
         logger.warning(f"AlienVault OTX fetch failed: {e}")
+        update_feed_stats(db, "alienvault_otx", success=False, error=str(e))
         return {"source": "alienvault_otx", "status": "timeout_or_error", "detail": str(e)}
 
 # -------------------------------------------------------------

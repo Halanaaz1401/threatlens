@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     REDIS_ALERT_CHANNEL: str = os.getenv("REDIS_ALERT_CHANNEL", "threatlens:events:alerts")
     REDIS_INCIDENT_CHANNEL: str = os.getenv("REDIS_INCIDENT_CHANNEL", "threatlens:events:incidents")
     REDIS_RULE_CHANNEL: str = os.getenv("REDIS_RULE_CHANNEL", "threatlens:events:rules")
+    REDIS_IOC_CHANNEL: str = os.getenv("REDIS_IOC_CHANNEL", "threatlens:events:indicators")
+    REDIS_FEED_CHANNEL: str = os.getenv("REDIS_FEED_CHANNEL", "threatlens:events:feeds")
 
     # Phase 4A Correlation Engine
     CORRELATION_WINDOW_MINUTES: int = int(os.getenv("CORRELATION_WINDOW_MINUTES", "15"))

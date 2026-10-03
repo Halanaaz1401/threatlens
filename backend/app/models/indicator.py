@@ -67,6 +67,7 @@ class IndicatorType(str, enum.Enum):
     DOMAIN = "domain"
     URL = "url"
     HASH_MD5 = "hash_md5"
+    HASH_SHA1 = "hash_sha1"
     HASH_SHA256 = "hash_sha256"
     EMAIL = "email"
     CVE = "cve"
@@ -103,6 +104,12 @@ class Indicator(Base):
     tags = Column(SafeJSONOrList, default=list, nullable=True)
     context = Column(SafeJSONOrDict, default=dict, nullable=True)
     mitre_technique = Column(String(50), nullable=True)
+
+    # Phase 4D-C Lifecycle & Expiration
+    expires_at = Column(DateTime, nullable=True, index=True)
+    ttl_days = Column(Integer, default=30, nullable=True)
+    analyst_notes = Column(Text, nullable=True)
+    revoked_reason = Column(String(255), nullable=True)
     
     first_seen = Column(DateTime, default=datetime.utcnow)
     last_seen = Column(DateTime, default=datetime.utcnow)
