@@ -25,6 +25,7 @@ from app.core.rbac import (
 from app.services.webhook_service import (
     SUPPORTED_PROVIDERS,
     InboundSecurityEventPayload,
+    adapt_inbound_provider_payload,
     ensure_default_webhook_configs,
     check_rate_limit,
     verify_webhook_authentication,
@@ -145,7 +146,7 @@ async def receive_inbound_webhook(
         )
 
     try:
-        event_payload = InboundSecurityEventPayload(**raw_json)
+        event_payload = adapt_inbound_provider_payload(clean_provider, raw_json)
     except Exception as val_err:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

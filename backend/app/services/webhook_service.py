@@ -108,6 +108,303 @@ class InboundSecurityEventPayload(BaseModel):
         return cleaned
 
 
+# ===========================================================================
+# Provider-Specific Native SIEM/EDR Payload Adapters (Finding-4DD-01)
+# ===========================================================================
+
+def adapt_splunk_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Map native Splunk notable events, alerts, and search exports."""
+    res = raw.get("result") if isinstance(raw.get("result"), dict) else raw
+    event_id = str(
+        raw.get("sid") or raw.get("event_id") or raw.get("search_id") or
+        raw.get("alert_id") or res.get("event_id") or res.get("rid") or ""
+    )
+
+    return {
+        "event_id": event_id,
+        "timestamp": str(res.get("_time") or res.get("timestamp") or raw.get("timestamp") or ""),
+        "event_type": str(raw.get("event_type") or res.get("event_type") or "SPLUNK_NOTABLE_EVENT"),
+        "severity": str(res.get("urgency") or res.get("severity") or raw.get("severity") or "HIGH").upper(),
+        "source_ip": res.get("src_ip") or res.get("src") or res.get("source_ip"),
+        "destination_ip": res.get("dest_ip") or res.get("dest") or res.get("destination_ip"),
+        "domain": res.get("query") or res.get("domain"),
+        "url": res.get("url"),
+        "hash": res.get("file_hash") or res.get("hash"),
+        "hostname": res.get("dest_host") or res.get("host") or res.get("hostname"),
+        "username": res.get("src_user") or res.get("user") or res.get("username"),
+        "description": res.get("description") or raw.get("search_name") or raw.get("description"),
+        "mitre_technique": res.get("mitre_technique_id") or res.get("mitre_technique") or raw.get("mitre_technique"),
+        "raw_event": raw,
+    }
+
+
+def adapt_qradar_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Map native IBM QRadar offenses, correlations, and event exports."""
+    event_id = str(raw.get("offense_id") or raw.get("id") or raw.get("event_id") or "")
+
+    # QRadar numeric severity (1-10) mapping
+    raw_sev = raw.get("severity")
+    if isinstance(raw_sev, (int, float)):
+        sev = "CRITICAL" if raw_sev >= 8 else "HIGH" if raw_sev >= 6 else "MEDIUM" if raw_sev >= 4 else "LOW"
+    elif isinstance(raw_sev, str) and raw_sev.isdigit():
+        val = int(raw_sev)
+        sev = "CRITICAL" if val >= 8 else "HIGH" if val >= 6 else "MEDIUM" if val >= 4 else "LOW"
+    else:
+        sev = str(raw_sev or "HIGH").upper()
+
+    return {
+        "event_id": event_id,
+        "timestamp": str(raw.get("start_time") or raw.get("timestamp") or ""),
+        "event_type": str(raw.get("event_type") or "QRADAR_OFFENSE"),
+        "severity": sev,
+        "source_ip": raw.get("offense_source") or raw.get("source_address") or raw.get("source_ip"),
+        "destination_ip": raw.get("destination_address") or raw.get("destination_ip"),
+        "domain": raw.get("domain_name") or raw.get("domain"),
+        "url": raw.get("url"),
+        "hash": raw.get("file_hash") or raw.get("hash"),
+        "hostname": raw.get("offense_target") or raw.get("hostname"),
+        "username": raw.get("assigned_to") or raw.get("username"),
+        "description": raw.get("description") or raw.get("offense_type_name"),
+        "mitre_technique": raw.get("mitre_technique"),
+        "raw_event": raw,
+    }
+
+
+def adapt_sentinel_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Map native Microsoft Sentinel incidents and analytic rule alerts."""
+    props = raw.get("properties") if isinstance(raw.get("properties"), dict) else {}
+    entities = raw.get("entities") if isinstance(raw.get("entities"), list) else []
+
+    event_id = str(
+        raw.get("id") or raw.get("incident_number") or raw.get("IncidentId") or
+        props.get("incidentNumber") or raw.get("event_id") or ""
+    )
+
+    source_ip = raw.get("source_ip") or props.get("source_ip")
+    destination_ip = raw.get("destination_ip") or props.get("destination_ip")
+    domain = raw.get("domain") or props.get("domain")
+    url = raw.get("url") or props.get("url")
+    file_hash = raw.get("hash") or props.get("hash")
+    hostname = raw.get("hostname") or props.get("hostname") or props.get("HostName")
+    username = raw.get("username") or props.get("username") or props.get("AccountName")
+
+    for ent in entities:
+        if isinstance(ent, dict):
+            kind = ent.get("kind", "").lower()
+            if kind == "ip":
+                if not source_ip:
+                    source_ip = ent.get("address")
+                elif not destination_ip and ent.get("address") != source_ip:
+                    destination_ip = ent.get("address")
+            elif kind == "host" and not hostname:
+                hostname = ent.get("hostName") or ent.get("netBiosName")
+            elif kind == "account" and not username:
+                username = ent.get("name") or ent.get("upnSuffix")
+            elif kind == "dnsresolution" and not domain:
+                domain = ent.get("domainName")
+            elif kind == "filehash" and not file_hash:
+                file_hash = ent.get("value")
+
+    sev = str(raw.get("severity") or props.get("severity") or raw.get("Severity") or "HIGH").upper()
+
+    return {
+        "event_id": event_id,
+        "timestamp": str(raw.get("created_time") or props.get("createdTimeUtc") or raw.get("timestamp") or ""),
+        "event_type": str(raw.get("event_type") or "SENTINEL_INCIDENT"),
+        "severity": sev,
+        "source_ip": source_ip,
+        "destination_ip": destination_ip,
+        "domain": domain,
+        "url": url,
+        "hash": file_hash,
+        "hostname": hostname,
+        "username": username,
+        "description": raw.get("title") or props.get("title") or raw.get("IncidentName") or raw.get("description"),
+        "mitre_technique": raw.get("mitre_technique") or (props.get("techniques", [None])[0] if isinstance(props.get("techniques"), list) and props.get("techniques") else None),
+        "raw_event": raw,
+    }
+
+
+def adapt_crowdstrike_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Map native CrowdStrike Falcon detection and endpoint telemetry webhooks."""
+    evt = raw.get("event") if isinstance(raw.get("event"), dict) else raw
+
+    event_id = str(
+        raw.get("CompositeId") or raw.get("detect_id") or raw.get("detection_id") or
+        raw.get("event_id") or evt.get("detect_id") or ""
+    )
+
+    sev = str(evt.get("SeverityName") or raw.get("SeverityName") or raw.get("severity") or "HIGH").upper()
+
+    return {
+        "event_id": event_id,
+        "timestamp": str(evt.get("ProcessStartTime") or raw.get("timestamp") or ""),
+        "event_type": str(raw.get("event_type") or "CROWDSTRIKE_DETECTION"),
+        "severity": sev,
+        "source_ip": evt.get("LocalIP") or evt.get("source_ip") or raw.get("source_ip"),
+        "destination_ip": evt.get("RemoteIP") or evt.get("destination_ip") or raw.get("destination_ip"),
+        "domain": evt.get("DomainName") or raw.get("domain"),
+        "url": evt.get("Url") or raw.get("url"),
+        "hash": evt.get("SHA256String") or evt.get("MD5String") or raw.get("hash"),
+        "hostname": evt.get("ComputerName") or raw.get("hostname"),
+        "username": evt.get("UserName") or raw.get("username"),
+        "description": evt.get("DetectDescription") or raw.get("description"),
+        "mitre_technique": evt.get("Technique") or evt.get("Tactic") or raw.get("mitre_technique"),
+        "raw_event": raw,
+    }
+
+
+def adapt_elastic_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Map native Elastic Security alert signals and Kibana alerting rule triggers."""
+    sig = raw.get("signal") if isinstance(raw.get("signal"), dict) else {}
+    rule = sig.get("rule", {}) if isinstance(sig.get("rule"), dict) else (raw.get("rule", {}) if isinstance(raw.get("rule"), dict) else {})
+
+    event_id = str(
+        raw.get("id") or raw.get("alert_id") or raw.get("signal_id") or
+        raw.get("event_id") or sig.get("id") or ""
+    )
+
+    # Source IP
+    src_ip = None
+    if isinstance(raw.get("source_ip"), str):
+        src_ip = raw.get("source_ip")
+    elif isinstance(raw.get("source.ip"), str):
+        src_ip = raw.get("source.ip")
+    elif isinstance(raw.get("source"), dict) and isinstance(raw.get("source", {}).get("ip"), str):
+        src_ip = raw.get("source", {}).get("ip")
+    elif isinstance(sig.get("source_ip"), str):
+        src_ip = sig.get("source_ip")
+
+    # Destination IP
+    dest_ip = None
+    if isinstance(raw.get("destination_ip"), str):
+        dest_ip = raw.get("destination_ip")
+    elif isinstance(raw.get("destination.ip"), str):
+        dest_ip = raw.get("destination.ip")
+    elif isinstance(raw.get("destination"), dict) and isinstance(raw.get("destination", {}).get("ip"), str):
+        dest_ip = raw.get("destination", {}).get("ip")
+    elif isinstance(sig.get("destination_ip"), str):
+        dest_ip = sig.get("destination_ip")
+
+    # URL and Domain
+    url_raw = raw.get("url")
+    url = None
+    domain = None
+
+    if isinstance(url_raw, dict):
+        url = url_raw.get("full") or url_raw.get("original")
+        domain = url_raw.get("domain")
+    elif isinstance(url_raw, str):
+        url = url_raw
+
+    if not domain:
+        if isinstance(raw.get("domain"), str):
+            domain = raw.get("domain")
+        elif isinstance(raw.get("url.domain"), str):
+            domain = raw.get("url.domain")
+        elif isinstance(raw.get("dns"), dict) and isinstance(raw.get("dns", {}).get("question", {}).get("name"), str):
+            domain = raw.get("dns", {}).get("question", {}).get("name")
+
+    if not url and isinstance(raw.get("url.full"), str):
+        url = raw.get("url.full")
+
+    # Hash
+    file_hash = None
+    if isinstance(raw.get("hash"), str):
+        file_hash = raw.get("hash")
+    elif isinstance(raw.get("file.hash.sha256"), str):
+        file_hash = raw.get("file.hash.sha256")
+    elif isinstance(raw.get("file"), dict):
+        f_hash = raw.get("file", {}).get("hash")
+        if isinstance(f_hash, dict):
+            file_hash = f_hash.get("sha256") or f_hash.get("md5")
+        elif isinstance(f_hash, str):
+            file_hash = f_hash
+
+    # Hostname
+    hostname = None
+    if isinstance(raw.get("hostname"), str):
+        hostname = raw.get("hostname")
+    elif isinstance(raw.get("host.name"), str):
+        hostname = raw.get("host.name")
+    elif isinstance(raw.get("host"), dict) and isinstance(raw.get("host", {}).get("name"), str):
+        hostname = raw.get("host", {}).get("name")
+
+    # Username
+    username = None
+    if isinstance(raw.get("username"), str):
+        username = raw.get("username")
+    elif isinstance(raw.get("user.name"), str):
+        username = raw.get("user.name")
+    elif isinstance(raw.get("user"), dict) and isinstance(raw.get("user", {}).get("name"), str):
+        username = raw.get("user", {}).get("name")
+
+    # Severity
+    sev = str(raw.get("kibana.alert.severity") or rule.get("severity") or raw.get("severity") or "HIGH").upper()
+    # Description
+    desc = raw.get("kibana.alert.rule.name") or rule.get("name") or raw.get("description")
+
+    # MITRE Technique
+    mitre = raw.get("mitre_technique")
+    if not mitre and isinstance(rule.get("threat"), list) and rule.get("threat"):
+        threat = rule.get("threat")[0]
+        if isinstance(threat, dict) and isinstance(threat.get("technique"), list) and threat.get("technique"):
+            tech = threat.get("technique")[0]
+            if isinstance(tech, dict):
+                mitre = tech.get("id")
+
+    return {
+        "event_id": event_id,
+        "timestamp": str(raw.get("@timestamp") or raw.get("timestamp") or ""),
+        "event_type": str(raw.get("event_type") or "ELASTIC_SECURITY_SIGNAL"),
+        "severity": sev,
+        "source_ip": src_ip,
+        "destination_ip": dest_ip,
+        "domain": domain,
+        "url": url,
+        "hash": file_hash,
+        "hostname": hostname,
+        "username": username,
+        "description": desc,
+        "mitre_technique": mitre,
+        "raw_event": raw,
+    }
+
+
+PROVIDER_ADAPTERS = {
+    "splunk": adapt_splunk_payload,
+    "qradar": adapt_qradar_payload,
+    "sentinel": adapt_sentinel_payload,
+    "crowdstrike": adapt_crowdstrike_payload,
+    "elastic": adapt_elastic_payload,
+}
+
+
+def adapt_inbound_provider_payload(provider: str, raw_json: Dict[str, Any]) -> InboundSecurityEventPayload:
+    """
+    Map native SIEM/EDR provider payloads into canonical InboundSecurityEventPayload.
+    Deterministic, explicit, zero eval/exec.
+    Rejects malformed payloads missing mandatory event identity.
+    """
+    clean_provider = provider.strip().lower()
+    adapter = PROVIDER_ADAPTERS.get(clean_provider)
+
+    if adapter:
+        mapped_dict = adapter(raw_json)
+    else:
+        mapped_dict = raw_json
+
+    cleaned = {k: v for k, v in mapped_dict.items() if v is not None}
+
+    if not cleaned.get("event_id"):
+        raise ValueError(
+            f"Provider '{clean_provider}' payload is missing mandatory event identity "
+            f"(e.g. event_id, offense_id, id, CompositeId)"
+        )
+
+    return InboundSecurityEventPayload(**cleaned)
+
+
 def ensure_default_webhook_configs(db: Session) -> None:
     """Ensure default SIEM/EDR providers exist in the webhook_configs table."""
     for conf in DEFAULT_PROVIDER_CONFIGS:

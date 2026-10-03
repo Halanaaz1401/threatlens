@@ -300,7 +300,7 @@ def execute_rule_dry_run(
         },
         "conditions_evaluated": details,
         "indicator_evaluated": {
-            "id": indicator.id,
+            "id": str(indicator.id) if indicator.id else None,
             "value": indicator.value,
             "type": indicator.type,
             "threat_score": indicator.threat_score,
@@ -355,9 +355,9 @@ def route_alert_notification(alert: Alert, rule: DetectionRule) -> Dict[str, Any
             "event": "ALERT_ROUTED",
             "timestamp": datetime.utcnow().isoformat(),
             "data": {
-                "alert_id": alert.id,
+                "alert_id": str(alert.id),
                 "alert_code": alert.alert_code,
-                "rule_id": rule.id,
+                "rule_id": str(rule.id) if rule.id else None,
                 "rule_name": rule.name,
                 "routing": routing_result,
             }
@@ -458,7 +458,7 @@ def evaluate_indicator_against_rules(
             mitre_technique=indicator.mitre_technique or "T1071",
             internal_sightings_count=1,
             context={
-                "rule_id": rule.id,
+                "rule_id": str(rule.id) if rule.id else None,
                 "rule_name": rule.name,
                 "matched_conditions": condition_details,
                 "routing_target": target_queue,
@@ -484,11 +484,11 @@ def evaluate_indicator_against_rules(
                 "event": "DETECTION_RULE_MATCHED",
                 "timestamp": now.isoformat(),
                 "data": {
-                    "rule_id": rule.id,
+                    "rule_id": str(rule.id) if rule.id else None,
                     "rule_code": rule.rule_code,
                     "rule_name": rule.name,
                     "severity": rule.severity,
-                    "indicator_id": indicator.id,
+                    "indicator_id": str(indicator.id) if indicator.id else None,
                     "indicator_value": indicator.value,
                     "matched_conditions": condition_details,
                     "routing": routing_info,
@@ -585,11 +585,16 @@ def create_detection_rule(
     return rule
 
 
-def get_detection_rule(db: Session, rule_id: str) -> Optional[DetectionRule]:
+def get_detection_rule(db: Session, rule_id: Union[str, uuid.UUID]) -> Optional[DetectionRule]:
     """Retrieve rule by UUID or rule_code."""
-    return db.query(DetectionRule).filter(
-        or_(DetectionRule.id == rule_id, DetectionRule.rule_code == rule_id)
-    ).first()
+    rule_str = str(rule_id)
+    try:
+        val_uuid = uuid.UUID(rule_str)
+        return db.query(DetectionRule).filter(
+            or_(DetectionRule.id == val_uuid, DetectionRule.rule_code == rule_str)
+        ).first()
+    except (ValueError, AttributeError):
+        return db.query(DetectionRule).filter(DetectionRule.rule_code == rule_str).first()
 
 
 def list_detection_rules(

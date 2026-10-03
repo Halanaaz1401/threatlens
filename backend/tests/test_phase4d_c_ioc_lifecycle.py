@@ -450,6 +450,10 @@ def test_feed_configuration_update(engineer_headers, viewer_headers):
 def test_feed_stats_tracking_and_error_handling(db_session):
     """Verify that feed operational stats are accurately recorded without exposing credentials."""
     feed_name = "urlhaus"
+    feed = db_session.query(Feed).filter(Feed.name == feed_name).first()
+    if feed:
+        feed.enabled = True
+        db_session.commit()
     # Successful fetch simulation
     update_feed_stats(db_session, feed_name=feed_name, success=True, count=15)
     feed = db_session.query(Feed).filter(Feed.name == feed_name).first()

@@ -220,14 +220,14 @@ def test_bounded_multihop_graph_traversal(db_session):
     assert g1["total_nodes"] == 2
     assert g1["total_edges"] == 1
     node_ids_g1 = {n["id"] for n in g1["nodes"]}
-    assert node_ids_g1 == {n0.id, n1.id}
+    assert node_ids_g1 == {str(n0.id), str(n1.id)}
 
     # Depth 2: should include n0, n1, n2 (3 nodes, 2 edges)
     g2 = get_subgraph(db_session, n0.id, max_depth=2)
     assert g2["total_nodes"] == 3
     assert g2["total_edges"] == 2
     node_ids_g2 = {n["id"] for n in g2["nodes"]}
-    assert node_ids_g2 == {n0.id, n1.id, n2.id}
+    assert node_ids_g2 == {str(n0.id), str(n1.id), str(n2.id)}
 
     # Depth 3: should include all 4 nodes
     g3 = get_subgraph(db_session, n0.id, max_depth=3)
@@ -348,12 +348,12 @@ def test_hunting_api_auth_and_rbac(db_session, analyst_headers, viewer_headers):
     # 2. Viewer can read graph
     resp_viewer_graph = client.get(f"/api/v1/hunting/graph/{ind1.id}", headers=viewer_headers)
     assert resp_viewer_graph.status_code == 200
-    assert resp_viewer_graph.json()["root_id"] == ind1.id
+    assert resp_viewer_graph.json()["root_id"] == str(ind1.id)
 
     # 3. Viewer is forbidden from creating relationships (requires Analyst+)
     create_payload = {
-        "source_indicator_id": ind1.id,
-        "target_indicator_id": ind2.id,
+        "source_indicator_id": str(ind1.id),
+        "target_indicator_id": str(ind2.id),
         "relationship_type": RelationshipType.COMMUNICATES_WITH.value,
         "confidence": 80,
     }
@@ -388,7 +388,7 @@ def test_empty_graph_and_nonexistent_indicator(db_session, viewer_headers):
     data = resp_iso.json()
     assert data["total_nodes"] == 1
     assert data["total_edges"] == 0
-    assert data["nodes"][0]["id"] == isolated.id
+    assert data["nodes"][0]["id"] == str(isolated.id)
     assert data["nodes"][0]["is_root"] is True
 
     # Non-existent node -> 404

@@ -237,7 +237,7 @@ def get_subgraph(
     nodes = []
     for ind in nodes_query:
         nodes.append({
-            "id": ind.id,
+            "id": str(ind.id),
             "value": ind.value,
             "type": ind.type,
             "severity": ind.severity,
@@ -247,7 +247,7 @@ def get_subgraph(
             "tlp": ind.tlp,
             "sightings": ind.sightings,
             "mitre_technique": ind.mitre_technique,
-            "is_root": ind.id == indicator_id,
+            "is_root": str(ind.id) == str(indicator_id),
             "first_seen": ind.first_seen.isoformat() if ind.first_seen else None,
             "last_seen": ind.last_seen.isoformat() if ind.last_seen else None,
         })

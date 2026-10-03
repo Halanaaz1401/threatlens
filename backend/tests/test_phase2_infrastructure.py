@@ -1,4 +1,5 @@
 import time
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -53,7 +54,7 @@ def test_database_connection_and_crud():
         assert res == 1
 
         # Test Indicator CRUD
-        test_val = f"198.51.100.{int(time.time()) % 250}"
+        test_val = f"198.51.{uuid.uuid4().int % 240 + 1}.{uuid.uuid4().int % 240 + 1}"
         ind = Indicator(
             value=test_val,
             type="ip",

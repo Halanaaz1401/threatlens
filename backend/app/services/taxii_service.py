@@ -82,15 +82,17 @@ def validate_taxii_url_safety(url: str, allow_local: bool = True) -> str:
     if hostname in BLOCKED_SSRF_HOSTS:
         raise ValueError(f"SSRF violation: Host '{hostname}' is forbidden.")
 
-    # Check if host resolves to link-local metadata address
+    # Check if host resolves to IP address
     try:
         ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        ip = None
+
+    if ip is not None:
         if ip.is_link_local:
             raise ValueError(f"SSRF violation: Link-local IP '{hostname}' is forbidden.")
         if not allow_local and (ip.is_loopback or ip.is_private):
             raise ValueError(f"SSRF violation: Local/private network '{hostname}' is not allowed in production.")
-    except ValueError:
-        pass  # Hostname is not an IP literal, proceed
 
     return url.strip()
 
@@ -98,7 +100,7 @@ def validate_taxii_url_safety(url: str, allow_local: bool = True) -> str:
 def parse_stix_indicator_pattern(pattern: str) -> Optional[Tuple[str, str]]:
     """
     Safely extract indicator value and type from a STIX 2.1 pattern using bounded regexes.
-    Guaranteed zero eval() and zero exec().
+    Guaranteed zero dynamic code execution.
     Returns (clean_value, ioc_type) or None if unsupported/unmatched.
     """
     if not pattern or not isinstance(pattern, str):
@@ -144,7 +146,7 @@ async def discover_taxii_server(
 
     should_close_client = False
     if client is None:
-        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=False)
+        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=True)
         should_close_client = True
 
     try:
@@ -192,7 +194,7 @@ async def get_taxii_collections(
 
     should_close_client = False
     if client is None:
-        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=False)
+        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=True)
         should_close_client = True
 
     try:
@@ -268,7 +270,7 @@ async def poll_taxii_collection(
 
     should_close_client = False
     if client is None:
-        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=False)
+        client = httpx.AsyncClient(timeout=TAXII_REQUEST_TIMEOUT, verify=True)
         should_close_client = True
 
     try:

@@ -510,3 +510,168 @@ def test_taxii_feed_registration_endpoint(auth_headers, db_session):
     res_list = client.get("/api/v1/feeds/", headers=eng_h)
     names = [f["name"] for f in res_list.json()]
     assert feed_name in names
+
+
+# ===========================================================================
+# 7. Remediation Tests: Provider-Native Adapters & TAXII TLS (Phase 4D-D Re-QA)
+# ===========================================================================
+
+def test_provider_native_adapters_all_five_providers():
+    """Verify provider-specific native SIEM/EDR payloads are accurately adapted into canonical model."""
+    uid = uuid.uuid4().hex[:6]
+    provider_test_cases = [
+        (
+            "splunk",
+            "threatlens_splunk_webhook_secret_2026",
+            {
+                "sid": f"splunk_test_native_{uid}",
+                "result": {
+                    "_time": "2026-10-03T18:00:00Z",
+                    "urgency": "critical",
+                    "src_ip": "198.51.100.11",
+                    "dest_ip": "10.0.0.5",
+                    "search_name": "Splunk Native Test"
+                }
+            },
+            f"splunk:splunk_test_native_{uid}"
+        ),
+        (
+            "qradar",
+            "threatlens_qradar_webhook_secret_2026",
+            {
+                "offense_id": f"qradar_test_native_{uid}",
+                "start_time": "2026-10-03T18:01:00Z",
+                "severity": 9,
+                "offense_source": "198.51.100.22",
+                "description": "QRadar Native Offense"
+            },
+            f"qradar:qradar_test_native_{uid}"
+        ),
+        (
+            "sentinel",
+            "threatlens_sentinel_webhook_secret_2026",
+            {
+                "id": f"sentinel_test_native_{uid}",
+                "properties": {
+                    "severity": "High",
+                    "title": "Sentinel Incident Test",
+                    "createdTimeUtc": "2026-10-03T18:02:00Z"
+                },
+                "entities": [
+                    {"kind": "Ip", "address": "198.51.100.33"},
+                    {"kind": "Host", "hostName": "WKSTN-TEST"}
+                ]
+            },
+            f"sentinel:sentinel_test_native_{uid}"
+        ),
+        (
+            "crowdstrike",
+            "threatlens_crowdstrike_webhook_secret_2026",
+            {
+                "CompositeId": f"cs_test_native_{uid}",
+                "event": {
+                    "ProcessStartTime": "2026-10-03T18:03:00Z",
+                    "SeverityName": "Critical",
+                    "LocalIP": "198.51.100.44",
+                    "DetectDescription": "CrowdStrike Falcon Test"
+                }
+            },
+            f"crowdstrike:cs_test_native_{uid}"
+        ),
+        (
+            "elastic",
+            "threatlens_elastic_webhook_secret_2026",
+            {
+                "id": f"elastic_test_native_{uid}",
+                "@timestamp": "2026-10-03T18:04:00Z",
+                "kibana.alert.severity": "critical",
+                "kibana.alert.rule.name": "Elastic Signal Test",
+                "source": {"ip": "198.51.100.55"},
+                "url": {"domain": f"c2-domain-{uid}.test"}
+            },
+            f"elastic:elastic_test_native_{uid}"
+        ),
+    ]
+
+    for provider, secret, payload, expected_dedup_key in provider_test_cases:
+        res = client.post(
+            f"/api/v1/integrations/webhooks/{provider}",
+            headers={"X-ThreatLens-Webhook-Secret": secret},
+            json=payload
+        )
+        assert res.status_code == 200, f"Failed for provider {provider}: {res.text}"
+        data = res.json()
+        assert data["status"] == "ingested"
+        assert data["dedup_key"] == expected_dedup_key
+        assert data["indicators_extracted"] >= 1
+
+
+def test_provider_native_payload_deduplication():
+    """Verify repeated native provider webhook payloads are idempotently deduplicated."""
+    uid = uuid.uuid4().hex[:6]
+    payload = {
+        "sid": f"splunk_dedup_test_{uid}",
+        "result": {
+            "_time": "2026-10-03T18:10:00Z",
+            "urgency": "high",
+            "src_ip": "198.51.100.88",
+            "search_name": "Splunk Dedup Test"
+        }
+    }
+    headers = {"X-ThreatLens-Webhook-Secret": "threatlens_splunk_webhook_secret_2026"}
+
+    # First delivery -> ingested
+    r1 = client.post("/api/v1/integrations/webhooks/splunk", headers=headers, json=payload)
+    assert r1.status_code == 200
+    assert r1.json()["status"] == "ingested"
+
+    # Second delivery -> deduplicated
+    r2 = client.post("/api/v1/integrations/webhooks/splunk", headers=headers, json=payload)
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "deduplicated"
+    assert "previously ingested" in r2.json()["message"]
+
+
+def test_provider_native_payload_missing_identity_rejected():
+    """Verify native payload missing required event identification is rejected with HTTP 422."""
+    malformed_payload = {
+        "non_standard_data": "unknown",
+        "no_id_field": True
+    }
+    headers = {"X-ThreatLens-Webhook-Secret": "threatlens_splunk_webhook_secret_2026"}
+
+    res = client.post("/api/v1/integrations/webhooks/splunk", headers=headers, json=malformed_payload)
+    assert res.status_code == 422
+    assert "missing mandatory event identity" in res.json()["detail"].lower()
+
+
+def test_taxii_tls_verification_enforced():
+    """Verify TAXII service enforces TLS verification (verify=True) with zero verify=False."""
+    import inspect
+    from app.services import taxii_service
+    src = inspect.getsource(taxii_service)
+
+    # 1. Zero occurrences of verify=False
+    assert "verify=False" not in src, "Forbidden verify=False found in taxii_service.py"
+
+    # 2. Production client must verify TLS certificates
+    assert "verify=True" in src or "verify=" not in src, "verify=True must be enforced for HTTPS TAXII"
+
+
+def test_taxii_ssrf_comprehensive_schemes_and_ip_blocking():
+    """Verify TAXII SSRF protection blocks non-HTTP/S schemes and private/link-local/metadata IPs."""
+    # Forbidden schemes
+    for bad_scheme in ["file:///etc/passwd", "gopher://127.0.0.1:70/", "ftp://taxii.example.org/"]:
+        with pytest.raises(ValueError, match="Invalid URL scheme"):
+            validate_taxii_url_safety(bad_scheme)
+
+    # Link-local / Cloud metadata (always blocked)
+    for bad_meta in ["http://169.254.169.254/taxii2/", "http://metadata.google.internal/taxii2/"]:
+        with pytest.raises(ValueError, match="SSRF violation"):
+            validate_taxii_url_safety(bad_meta)
+
+    # Private & loopback IPs when allow_local=False
+    for priv_ip in ["http://127.0.0.1:8000/taxii2/", "http://10.0.0.1/taxii2/", "http://192.168.1.1/taxii2/", "http://172.16.0.1/taxii2/"]:
+        with pytest.raises(ValueError, match="SSRF violation"):
+            validate_taxii_url_safety(priv_ip, allow_local=False)
+

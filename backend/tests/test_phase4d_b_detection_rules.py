@@ -253,7 +253,7 @@ def test_dry_run_rule_testing(db_session, analyst_headers):
     incidents_before = db_session.query(Incident).count()
 
     test_payload = {
-        "indicator_id": ind.id,
+        "indicator_id": str(ind.id),
         "rule_data": {
             "name": "Domain Dry Run Test",
             "conditions": [
