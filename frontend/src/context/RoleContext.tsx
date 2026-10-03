@@ -52,7 +52,7 @@ export const PERSONA_CONFIG: Record<UserRole, PersonaInfo> = {
     title: "Security & Detection Engineer",
     focus: "STIX Feeds, Ingestion & System Health",
     badgeColor: "text-blue-400 border-blue-800 bg-blue-950/60",
-    allowedTabs: ["/", "/dashboard/analyst", "/dashboard/hunting"],
+    allowedTabs: ["/", "/dashboard/analyst", "/dashboard/hunting", "/dashboard/feeds"],
   },
   Administrator: {
     name: "SecOps Admin",
@@ -65,6 +65,7 @@ export const PERSONA_CONFIG: Record<UserRole, PersonaInfo> = {
       "/dashboard/executive",
       "/dashboard/incidents",
       "/dashboard/hunting",
+      "/dashboard/feeds",
     ],
   },
 };

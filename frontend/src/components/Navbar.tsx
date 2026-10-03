@@ -24,6 +24,7 @@ export function Navbar() {
     { label: "Executive View", href: "/dashboard/executive", icon: "📈" },
     { label: "Incidents & IR", href: "/dashboard/incidents", icon: "⚠️" },
     { label: "Threat Hunting", href: "/dashboard/hunting", icon: "🎯" },
+    { label: "Feeds", href: "/dashboard/feeds", icon: "📡" },
   ];
 
   const allowedTabs = persona?.allowedTabs || ["/"];

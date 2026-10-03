@@ -197,3 +197,57 @@ export async function safeEvaluateIndicatorRules(indicatorId: string) {
   return await apiPost(`/api/v1/detection-rules/evaluate/${indicatorId}`, {});
 }
 
+// -----------------------------------------------------------------
+// Phase 4D-C: IOC Lifecycle, Expiration, and Feed Management APIs
+// -----------------------------------------------------------------
+
+export async function safeFetchIndicator(id: string) {
+  return await apiGet(`/api/v1/indicators/${id}`);
+}
+
+export async function safeCreateIndicator(payload: any) {
+  return await apiPost("/api/v1/indicators/create", payload);
+}
+
+export async function safeUpdateIndicator(id: string, payload: any) {
+  return await apiPut(`/api/v1/indicators/${id}`, payload);
+}
+
+export async function safeDeleteIndicator(id: string, reason?: string, hardDelete: boolean = false) {
+  let url = `/api/v1/indicators/${id}?hard_delete=${hardDelete}`;
+  if (reason) {
+    url += `&reason=${encodeURIComponent(reason)}`;
+  }
+  return await apiDelete(url);
+}
+
+export async function safeExpireStaleIndicators(batchSize: number = 100) {
+  return await apiPost("/api/v1/indicators/expire-stale", { batch_size: batchSize });
+}
+
+export async function safeFetchFeeds() {
+  const res = await apiGet("/api/v1/feeds/");
+  return res || [];
+}
+
+export async function safeFetchFeed(id: string) {
+  return await apiGet(`/api/v1/feeds/${id}`);
+}
+
+export async function safeEnableFeed(id: string) {
+  return await apiPost(`/api/v1/feeds/${id}/enable`, {});
+}
+
+export async function safeDisableFeed(id: string) {
+  return await apiPost(`/api/v1/feeds/${id}/disable`, {});
+}
+
+export async function safeUpdateFeedConfig(id: string, payload: any) {
+  return await apiPut(`/api/v1/feeds/${id}`, payload);
+}
+
+export async function safeTriggerFeedFetch(source: string = "all") {
+  return await apiPost(`/api/v1/feeds/fetch?source=${encodeURIComponent(source)}`, {});
+}
+
+
