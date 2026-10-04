@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     integrations,
     cases,
     reports,
+    dashboards,
 )
 
 api_router = APIRouter()
@@ -27,6 +28,7 @@ api_router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 api_router.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
 api_router.include_router(cases.router, prefix="/cases", tags=["Case Management"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Executive Reports"])
+api_router.include_router(dashboards.router, tags=["Custom Dashboards"])
 api_router.include_router(feeds.router, prefix="/feeds", tags=["Threat Feeds"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])

@@ -45,6 +45,14 @@ from app.models.report import (
     ReportType,
     ReportStatus,
 )
+from app.models.dashboard import (
+    Dashboard,
+    DashboardWidget,
+    DashboardVisibility,
+    WidgetType,
+    WidgetDataSource,
+    WidgetMetric,
+)
 
 __all__ = [
     "Base",
@@ -87,6 +95,12 @@ __all__ = [
     "Report",
     "ReportType",
     "ReportStatus",
+    "Dashboard",
+    "DashboardWidget",
+    "DashboardVisibility",
+    "WidgetType",
+    "WidgetDataSource",
+    "WidgetMetric",
 ]
 
 

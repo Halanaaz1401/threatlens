@@ -323,6 +323,22 @@ def publish_report_event(event_type: str, data: dict) -> bool:
     }
     return redis_manager.publish_event(settings.REDIS_REPORT_CHANNEL, payload)
 
+def publish_dashboard_event(event_type: str, data: dict) -> bool:
+    """
+    Publish structured dashboard management event (Phase 4F).
+    Events: DASHBOARD_CREATED, DASHBOARD_UPDATED, DASHBOARD_DELETED,
+            WIDGET_CREATED, WIDGET_UPDATED, WIDGET_DELETED, LAYOUT_UPDATED.
+    """
+    from datetime import datetime, timezone
+    payload = {
+        "type": event_type,
+        "event": event_type,
+        "channel": settings.REDIS_DASHBOARD_CHANNEL,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data": data,
+    }
+    return redis_manager.publish_event(settings.REDIS_DASHBOARD_CHANNEL, payload)
+
 __all__ = [
     "redis_manager",
     "RedisManager",
@@ -331,5 +347,6 @@ __all__ = [
     "publish_feed_event",
     "publish_security_event",
     "publish_case_event",
-    "publish_report_event"
+    "publish_report_event",
+    "publish_dashboard_event"
 ]

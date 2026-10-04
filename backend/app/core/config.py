@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     REDIS_INTEGRATION_CHANNEL: str = os.getenv("REDIS_INTEGRATION_CHANNEL", "threatlens:events:integrations")
     REDIS_CASE_CHANNEL: str = os.getenv("REDIS_CASE_CHANNEL", "threatlens:events:cases")
     REDIS_REPORT_CHANNEL: str = os.getenv("REDIS_REPORT_CHANNEL", "threatlens:events:reports")
+    REDIS_DASHBOARD_CHANNEL: str = os.getenv("REDIS_DASHBOARD_CHANNEL", "threatlens:events:dashboards")
 
     # Phase 4E Reports Storage
     REPORTS_DIR: str = os.getenv("REPORTS_DIR", "reports_storage")

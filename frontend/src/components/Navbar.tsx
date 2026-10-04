@@ -23,6 +23,7 @@ export function Navbar() {
     { label: "SOC Analyst", href: "/dashboard/analyst", icon: "🛡️" },
     { label: "Executive View", href: "/dashboard/executive", icon: "📈" },
     { label: "Cases", href: "/dashboard/cases", icon: "📁" },
+    { label: "Dashboards", href: "/dashboard/builder", icon: "📊" },
     { label: "Incidents & IR", href: "/dashboard/incidents", icon: "⚠️" },
     { label: "Threat Hunting", href: "/dashboard/hunting", icon: "🎯" },
     { label: "Feeds", href: "/dashboard/feeds", icon: "📡" },

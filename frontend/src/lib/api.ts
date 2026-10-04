@@ -423,3 +423,76 @@ export function getReportDownloadUrl(reportId: string): string {
   const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   return `${base}/api/v1/reports/${reportId}/download`;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4F Custom Dashboards & Modular Widgets API
+// ---------------------------------------------------------------------------
+
+export async function safeFetchDashboards() {
+  const res = await apiGet("/api/v1/dashboards");
+  return res || { dashboards: [], total: 0 };
+}
+
+export async function safeFetchDashboard(dashboardId: string) {
+  return await apiGet(`/api/v1/dashboards/${dashboardId}`);
+}
+
+export async function safeCreateDashboard(payload: {
+  name: string;
+  description?: string;
+  is_default?: boolean;
+  visibility?: string;
+}) {
+  return await apiPost("/api/v1/dashboards", payload);
+}
+
+export async function safeUpdateDashboard(
+  dashboardId: string,
+  payload: {
+    name?: string;
+    description?: string;
+    is_default?: boolean;
+    visibility?: string;
+  }
+) {
+  return await apiPatch(`/api/v1/dashboards/${dashboardId}`, payload);
+}
+
+export async function safeDeleteDashboard(dashboardId: string) {
+  return await apiDelete(`/api/v1/dashboards/${dashboardId}`);
+}
+
+export async function safeDuplicateDashboard(dashboardId: string, newName?: string) {
+  const q = newName ? `?new_name=${encodeURIComponent(newName)}` : "";
+  return await apiPost(`/api/v1/dashboards/${dashboardId}/duplicate${q}`);
+}
+
+export async function safeFetchWidgetCatalog() {
+  const res = await apiGet("/api/v1/dashboards/catalog/widgets");
+  return res?.catalog || [];
+}
+
+export async function safeAddWidget(dashboardId: string, payload: any) {
+  return await apiPost(`/api/v1/dashboards/${dashboardId}/widgets`, payload);
+}
+
+export async function safeUpdateWidget(dashboardId: string, widgetId: string, payload: any) {
+  return await apiPatch(`/api/v1/dashboards/${dashboardId}/widgets/${widgetId}`, payload);
+}
+
+export async function safeDeleteWidget(dashboardId: string, widgetId: string) {
+  return await apiDelete(`/api/v1/dashboards/${dashboardId}/widgets/${widgetId}`);
+}
+
+export async function safeFetchWidgetData(dashboardId: string, widgetId: string, timeRange?: string) {
+  const q = timeRange ? `?time_range=${encodeURIComponent(timeRange)}` : "";
+  return await apiGet(`/api/v1/dashboards/${dashboardId}/widgets/${widgetId}/data${q}`);
+}
+
+export async function safeUpdateDashboardLayout(
+  dashboardId: string,
+  items: Array<{ id: string; position_x?: number; position_y?: number; width?: number; height?: number }>
+) {
+  return await apiPost(`/api/v1/dashboards/${dashboardId}/layout`, { items });
+}
+
