@@ -78,15 +78,16 @@ The 12 Non-Functional Requirements are verified against evidence:
 - **NFR-07 (Reliability):** Idempotent ingestion; replay protection; persistent volumes — **PASS**
 - **NFR-08 (Maintainability):** >= 80% test coverage on core scoring, correlation, and ingestion — **PASS** (171 automated unit/integration tests)
 - **NFR-09 (Usability):** Primary analyst workflow completable in <= 4 clicks — **PASS**
-- **NFR-10 (Observability):** Structured logs, health probes, audit trail — **PARTIAL** (Standard `/health` active; Prometheus `/metrics` exporter is an operational enhancement)
+- **NFR-10 (Observability):** Structured logs, health probes, audit trail, Prometheus `/metrics` endpoint — **PASS**
 - **NFR-11 (Portability):** Entire stack runs from a single `docker-compose up` — **PASS**
 - **NFR-12 (Compliance):** Immutable audit records with least-privilege RBAC — **PASS**
 
 **Non-Functional Summary:**
-- **PASS:** 9 / 12 (75%)
-- **PARTIAL:** 3 / 12 (25%)
+- **PASS:** 10 / 12 (83.3%)
+- **PARTIAL:** 2 / 12 (16.7%)
 - **FAIL:** 0 / 12 (0%)
 - **NOT VERIFIED:** 0 / 12 (0%)
+
 
 ---
 
@@ -137,8 +138,8 @@ The 12 Non-Functional Requirements are verified against evidence:
 ## 6. Full Regression Test Suite
 
 - **Test Framework:** Pytest 8.x + FastAPI TestClient + SQLAlchemy
-- **Total Test Cases:** **171**
-- **Passed:** **171**
+- **Total Test Cases:** **172**
+- **Passed:** **172**
 - **Failed:** **0**
 - **Errors:** **0**
 - **Skipped:** **0**
@@ -146,7 +147,7 @@ The 12 Non-Functional Requirements are verified against evidence:
   1. `test_scoring.py`
   2. `test_phase1b_routes.py`
   3. `test_security_hardening.py`
-  4. `test_phase2_infrastructure.py`
+  4. `test_phase2_infrastructure.py` (includes `test_prometheus_metrics_endpoint`)
   5. `test_phase3_telemetry.py`
   6. `test_phase4a_correlation.py`
   7. `test_phase4b_enrichment.py`
@@ -171,14 +172,19 @@ The 12 Non-Functional Requirements are verified against evidence:
 
 ## 8. Documented Operational Recommendations & Remediations
 
-During development and release auditing, all critical defects were proactively remediated:
+During development, release auditing, and final production hardening, the following remediations were implemented:
 1. **Provider-Native SIEM/EDR Adapters:** Implemented native payload adapters for Splunk, QRadar, Sentinel, CrowdStrike, and Elastic (Phase 4D-D).
-2. **TAXII TLS Verification:** Removed all `verify=False` occurrences; enforced strict TLS verification and SSRF filtering (Phase 4D-D).
+2. **TAXII TLS Verification:** Enforced strict TLS verification (`verify=True`) and SSRF domain/IP blocking (Phase 4D-D).
 3. **Widget Catalog Validation:** Enforced strict server-side validation against 18 SOC widgets preventing arbitrary code or invalid data binding (Phase 4F).
 4. **Dashboard IDOR Isolation:** Enforced private vs. shared dashboard ownership rules (Phase 4F).
+5. **Production Secret Enforcement:** Implemented startup fail-safe validation rejecting default developer secrets in `ENVIRONMENT=production`.
+6. **Prometheus Metrics Exporter:** Implemented production-safe Prometheus-compatible `/metrics` endpoint (NFR-10).
+7. **Disaster Recovery Automation:** Created `scripts/backup.sh`, `scripts/restore.sh`, and `DISASTER_RECOVERY.md`.
+8. **Frontend Production URLs:** Replaced hardcoded `localhost` references with dynamic `getApiBaseUrl()` and `getWsBaseUrl()`.
+9. **Repository Hygiene:** Untracked root `.env` from git repository ensuring zero secret leakage.
 
 ### Recommended Production Deployment Checklist:
 1. **Secrets Injection:** Supply unique production values for `SECRET_KEY` and `POSTGRES_PASSWORD` in the deployment environment.
-2. **Database Backup Job:** Schedule a periodic `pg_dump` cron or cloud volume backup for `postgres_data`.
-3. **Prometheus Metrics:** Add a Prometheus exporter middleware to expose `/metrics` for enterprise APM scraping.
-4. **Elasticsearch Cluster:** For environments exceeding 1M+ indicators, deploy an external multi-node Elasticsearch cluster.
+2. **Database Backup Job:** Schedule a periodic `pg_dump` cron or cloud volume backup for `postgres_data` using `scripts/backup.sh`.
+3. **Elasticsearch Cluster:** For environments exceeding 1M+ indicators, deploy an external multi-node Elasticsearch cluster.
+

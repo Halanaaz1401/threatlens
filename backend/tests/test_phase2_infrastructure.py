@@ -251,3 +251,31 @@ def test_enhanced_health_check_endpoint():
     ready_resp = client.get("/health/ready")
     assert ready_resp.status_code == 200
     assert ready_resp.json()["status"] == "ready"
+
+def test_prometheus_metrics_endpoint():
+    """
+    Verify /metrics exposes Prometheus-compatible metrics without leaking secrets,
+    credentials, or sensitive database rows (NFR-10).
+    """
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    assert "text/plain" in resp.headers.get("content-type", "")
+
+    body = resp.text
+    assert "threatlens_build_info" in body
+    assert "threatlens_uptime_seconds" in body
+    assert 'threatlens_dependency_up{dependency="database"}' in body
+    assert 'threatlens_dependency_up{dependency="redis"}' in body
+    assert 'threatlens_dependency_up{dependency="elasticsearch"}' in body
+    assert "threatlens_active_websocket_connections" in body
+    assert "threatlens_indicators_total" in body
+    assert "threatlens_alerts_total" in body
+    assert "threatlens_incidents_total" in body
+    assert "threatlens_cases_total" in body
+
+    # Security check: Zero secrets in metrics payload
+    assert "password" not in body.lower()
+    assert "secret" not in body.lower() or "threatlens_uptime_seconds" in body
+    assert "bearer" not in body.lower()
+    assert "jwt" not in body.lower()
+

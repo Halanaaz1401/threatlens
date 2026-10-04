@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useRole } from "@/context/RoleContext";
-import { safeFetchIndicators, safeFetchIncidents, safeFetchIncidentTimeline } from "@/lib/api";
+import { safeFetchIndicators, safeFetchIncidents, safeFetchIncidentTimeline, getApiBaseUrl } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth";
+
 
 export default function IncidentResponsePage() {
   const { persona } = useRole();
@@ -40,12 +41,9 @@ export default function IncidentResponsePage() {
     try {
       let res = null;
       const headers = { ...getAuthHeaders() };
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      try {
-        res = await fetch(`${baseUrl}/api/v1/export/stix`, { headers });
-      } catch {
-        res = await fetch("http://localhost:8000/api/v1/export/stix", { headers });
-      }
+      const baseUrl = getApiBaseUrl();
+      res = await fetch(`${baseUrl}/api/v1/export/stix`, { headers });
+
 
       if (res && res.ok) {
         const stixData = await res.json();

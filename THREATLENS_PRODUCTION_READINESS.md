@@ -151,10 +151,18 @@ Redis 7 acts as the central event bus, session cache, and token revocation coord
 - Python standard `logging` configured across modules (`threatlens.auth`, `threatlens.cases`, `threatlens.taxii`, `threatlens.webhooks`).
 - Tracebacks and credentials are never exposed in external HTTP responses; errors return clean RFC-7807 compliant error payloads.
 
-### 6.3 Observability Gaps to Note
-- **Prometheus Metrics Exporter:** A dedicated `/metrics` endpoint (Prometheus format) is not currently enabled on the FastAPI router. Standard APM agents or a Prometheus FastAPI middleware can be enabled for scraping metrics.
+### 6.3 Prometheus Metrics Exporter (Implemented)
+- **Prometheus Metrics Exporter:** A dedicated `/metrics` endpoint (Prometheus exposition format `text/plain; version=0.0.4`) is implemented on the core FastAPI application.
+- **Metrics Exposed:**
+  - `threatlens_build_info`: Application version and runtime environment
+  - `threatlens_uptime_seconds`: Process uptime
+  - `threatlens_dependency_up`: Health status of database, redis, and elasticsearch
+  - `threatlens_active_websocket_connections`: Count of active WebSocket connections
+  - `threatlens_indicators_total`, `threatlens_alerts_total`, `threatlens_incidents_total`, `threatlens_cases_total`: Low-cardinality aggregated entity counts
+- **Security:** Zero secrets, zero credentials, zero raw threat telemetry. Protected by optional `METRICS_AUTH_TOKEN` bearer authentication when configured in production.
 
 ---
+
 
 ## 7. Backup & Disaster Recovery Readiness
 

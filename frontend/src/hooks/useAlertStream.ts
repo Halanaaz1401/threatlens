@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { AlertItem } from "@/components/analyst/AlertQueue";
 import { getAuthToken } from "@/lib/auth";
+import { getWsBaseUrl } from "@/lib/api";
 
 export function useAlertStream() {
   const [liveAlerts, setLiveAlerts] = useState<AlertItem[]>([]);
@@ -16,11 +17,11 @@ export function useAlertStream() {
 
     function connect() {
       const token = getAuthToken();
-      const baseWsUrl =
-        process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/v1/ws/alerts";
+      const baseWsUrl = getWsBaseUrl();
       const wsUrl = token
-        ? `${baseWsUrl}?token=${encodeURIComponent(token)}`
+        ? `${baseWsUrl}${baseWsUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
         : baseWsUrl;
+
 
       try {
         socket = new WebSocket(wsUrl);

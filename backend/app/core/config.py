@@ -69,6 +69,36 @@ class Settings(BaseSettings):
     ELASTICSEARCH_PASSWORD: str = os.getenv("ELASTICSEARCH_PASSWORD", "")
     ELASTICSEARCH_INDEX: str = os.getenv("ELASTICSEARCH_INDEX", "threatlens_indicators")
 
+    # Metrics Observability (Phase Hardened)
+    METRICS_AUTH_TOKEN: str = os.getenv("METRICS_AUTH_TOKEN", "")
+
+    def validate_production_secrets(self) -> None:
+        """
+        Enforce fail-safe validation for production secrets.
+        When ENVIRONMENT is set to 'production' or 'prod', insecure development
+        defaults are strictly rejected at startup to prevent vulnerable deployments.
+        """
+        if self.ENVIRONMENT.lower() in ("production", "prod"):
+            insecure_defaults = {
+                "super_secret_jwt_key_threatlens_2026",
+                "threatlens_secure_password_2026",
+                "threatlens_enterprise_production_jwt_secret_key_2026",
+                "changeme",
+                "threatlens123",
+                "secret",
+                "admin",
+            }
+            if not self.SECRET_KEY or self.SECRET_KEY.strip() in insecure_defaults:
+                raise RuntimeError(
+                    "FATAL SECURITY CONFIGURATION: Insecure or default SECRET_KEY detected in production. "
+                    "You must provide an explicit, cryptographically secure SECRET_KEY in the environment."
+                )
+            if not self.POSTGRES_PASSWORD or self.POSTGRES_PASSWORD.strip() in insecure_defaults:
+                raise RuntimeError(
+                    "FATAL SECURITY CONFIGURATION: Insecure or default POSTGRES_PASSWORD detected in production. "
+                    "You must provide an explicit, cryptographically secure POSTGRES_PASSWORD in the environment."
+                )
+
     @property
     def DATABASE_URL(self) -> str:
         explicit_url = os.getenv("DATABASE_URL")
@@ -77,3 +107,4 @@ class Settings(BaseSettings):
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 settings = Settings()
+

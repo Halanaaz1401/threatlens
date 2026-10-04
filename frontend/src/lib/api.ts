@@ -1,10 +1,41 @@
 import { getAuthHeaders } from "./auth";
 
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined") {
+    const { protocol, hostname, port } = window.location;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+    }
+  }
+  return "http://localhost:8000";
+}
+
+export function getWsBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+  if (typeof window !== "undefined") {
+    const { protocol, hostname, port } = window.location;
+    const wsProto = protocol === "https:" ? "wss:" : "ws:";
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return `${wsProto}//${hostname}${port ? `:${port}` : ""}/api/v1/ws/alerts`;
+    }
+  }
+  return "ws://localhost:8000/api/v1/ws/alerts";
+}
+
 const API_BASE_URLS = [
   process.env.NEXT_PUBLIC_API_URL,
+  typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+    ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ""}`
+    : null,
   "http://127.0.0.1:8000",
   "http://localhost:8000",
 ].filter(Boolean) as string[];
+
 
 async function apiGet(path: string) {
   const headers = { ...getAuthHeaders() };
@@ -420,7 +451,7 @@ export async function safeFetchReport(reportId: string) {
 }
 
 export function getReportDownloadUrl(reportId: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const base = getApiBaseUrl();
   return `${base}/api/v1/reports/${reportId}/download`;
 }
 

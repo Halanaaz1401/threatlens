@@ -11,7 +11,10 @@ import {
   safeUpdateIndicator,
   safeDeleteIndicator,
   safeExpireStaleIndicators,
+  getApiBaseUrl,
+  getWsBaseUrl,
 } from "@/lib/api";
+
 import { DetectionRulesManager } from "@/components/DetectionRulesManager";
 import { FeedManagement } from "@/components/FeedManagement";
 
@@ -92,12 +95,12 @@ export default function AnalystDashboardPage() {
     let socket: WebSocket | null = null;
     try {
       const token = getAuthToken();
-      const rawBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const wsBase = rawBase.replace(/^http/, "ws");
+      const wsEndpoint = getWsBaseUrl();
       const wsUrl = token
-        ? `${wsBase}/api/v1/ws/alerts?token=${encodeURIComponent(token)}`
-        : `${wsBase}/api/v1/ws/alerts`;
+        ? `${wsEndpoint}${wsEndpoint.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
+        : wsEndpoint;
       socket = new WebSocket(wsUrl);
+
 
       socket.onmessage = (event) => {
         try {
@@ -150,19 +153,16 @@ export default function AnalystDashboardPage() {
   const handleSyncFeeds = async () => {
     try {
       setSyncing(true);
-      let res = null;
       const headers = { ...getAuthHeaders() };
-      try {
-        res = await fetch("http://127.0.0.1:8000/api/v1/indicators/sync-feeds", { method: "POST", headers });
-      } catch {
-        res = await fetch("http://localhost:8000/api/v1/indicators/sync-feeds", { method: "POST", headers });
-      }
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/v1/indicators/sync-feeds`, { method: "POST", headers });
 
       if (res && res.ok) {
         await fetchIndicators();
         setActionSuccess("Threat feeds synchronized successfully.");
         setTimeout(() => setActionSuccess(null), 4000);
       }
+
     } catch (err) {
       console.error("Sync failed:", err);
     } finally {
