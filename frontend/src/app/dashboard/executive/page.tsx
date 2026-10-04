@@ -3,7 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
-import { safeFetchAnalyticsOverview, safeFetchMitreAnalytics } from "@/lib/api";
+import {
+  safeFetchAnalyticsOverview,
+  safeFetchMitreAnalytics,
+  safeGenerateExecutiveReport,
+  safeFetchReports,
+  getReportDownloadUrl
+} from "@/lib/api";
 import AnalyticsCharts from "@/components/AnalyticsCharts";
 
 export default function ExecutiveDashboardPage() {
@@ -12,6 +18,38 @@ export default function ExecutiveDashboardPage() {
   const [mitreData, setMitreData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("24h");
+
+  // Executive PDF Reporting
+  const [reports, setReports] = useState<any[]>([]);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+
+  const loadReportsList = async () => {
+    const list = await safeFetchReports();
+    setReports(list || []);
+  };
+
+  const handleGeneratePdf = async () => {
+    setGeneratingReport(true);
+    setReportSuccessMsg(null);
+    try {
+      const rep = await safeGenerateExecutiveReport(timeRange);
+      if (rep && rep.id) {
+        setReportSuccessMsg(`Report ${rep.report_code} generated successfully.`);
+        await loadReportsList();
+      } else {
+        setReportSuccessMsg("Failed to generate report. Ensure analyst or executive role.");
+      }
+    } catch (err: any) {
+      setReportSuccessMsg(`Error: ${err.message || 'Generation failed'}`);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReportsList();
+  }, []);
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -87,6 +125,14 @@ export default function ExecutiveDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleGeneratePdf}
+            disabled={generatingReport}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-950 transition disabled:opacity-50"
+          >
+            <span>📄</span>
+            <span>{generatingReport ? "Compiling PDF..." : "Generate Executive PDF Report"}</span>
+          </button>
           <Link
             href="/"
             className="bg-[#0e1628] hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs transition"
@@ -95,6 +141,45 @@ export default function ExecutiveDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Executive PDF Briefing Notice & Recent Reports List */}
+      {(reportSuccessMsg || reports.length > 0) && (
+        <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-4 space-y-3 shadow-sm text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold text-slate-200 flex items-center gap-1.5">
+              <span>📄</span> Generated Executive PDF Reports (FR-23)
+            </span>
+            {reportSuccessMsg && (
+              <span className="text-emerald-400 font-medium">{reportSuccessMsg}</span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {reports.slice(0, 3).map((r) => (
+              <div key={r.id} className="bg-[#080d19] border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-cyan-400">{r.report_code}</span>
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-300">
+                      {r.time_range}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">{new Date(r.created_at).toLocaleDateString()}</p>
+                </div>
+                <a
+                  href={getReportDownloadUrl(r.id)}
+                  download={r.file_name}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition"
+                >
+                  Download &darr;
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* CISO High-Level Metric Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

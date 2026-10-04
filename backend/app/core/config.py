@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     REDIS_IOC_CHANNEL: str = os.getenv("REDIS_IOC_CHANNEL", "threatlens:events:indicators")
     REDIS_FEED_CHANNEL: str = os.getenv("REDIS_FEED_CHANNEL", "threatlens:events:feeds")
     REDIS_INTEGRATION_CHANNEL: str = os.getenv("REDIS_INTEGRATION_CHANNEL", "threatlens:events:integrations")
+    REDIS_CASE_CHANNEL: str = os.getenv("REDIS_CASE_CHANNEL", "threatlens:events:cases")
+    REDIS_REPORT_CHANNEL: str = os.getenv("REDIS_REPORT_CHANNEL", "threatlens:events:reports")
+
+    # Phase 4E Reports Storage
+    REPORTS_DIR: str = os.getenv("REPORTS_DIR", "reports_storage")
 
     # Inbound Integrations & Webhooks (Phase 4D-D)
     WEBHOOK_MAX_PAYLOAD_BYTES: int = int(os.getenv("WEBHOOK_MAX_PAYLOAD_BYTES", "524288"))  # 512 KB

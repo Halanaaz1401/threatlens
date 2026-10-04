@@ -152,6 +152,25 @@ async function apiDelete(path: string) {
       // try next host
     }
   }
+async function apiPatch(path: string, body: any) {
+  const headers = {
+    ...getAuthHeaders(),
+    "Content-Type": "application/json",
+  };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try next host
+    }
+  }
   return null;
 }
 
@@ -282,4 +301,125 @@ export async function safeFetchTaxiiCollections(serverUrl: string, apiRoot: stri
 
 export async function safeCreateTaxiiFeed(payload: any) {
   return await apiPost("/api/v1/feeds/taxii", payload);
+}
+
+// -----------------------------------------------------------------
+// Phase 4E: Forensic Case Management & Executive Reporting APIs
+// -----------------------------------------------------------------
+
+export async function safeFetchCases(filters?: {
+  status?: string;
+  severity?: string;
+  priority?: string;
+  assignee?: string;
+  search?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.severity) params.append("severity", filters.severity);
+  if (filters?.priority) params.append("priority", filters.priority);
+  if (filters?.assignee) params.append("assignee", filters.assignee);
+  if (filters?.search) params.append("search", filters.search);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  const res = await apiGet(`/api/v1/cases/${q}`);
+  return res || [];
+}
+
+export async function safeFetchCase(caseId: string) {
+  return await apiGet(`/api/v1/cases/${caseId}`);
+}
+
+export async function safeCreateCase(payload: {
+  title: string;
+  description?: string;
+  severity?: string;
+  priority?: string;
+  assignee?: string;
+  owner?: string;
+  tags?: string[];
+  source?: string;
+}) {
+  return await apiPost("/api/v1/cases/", payload);
+}
+
+export async function safeUpdateCase(caseId: string, payload: any) {
+  return await apiPatch(`/api/v1/cases/${caseId}`, payload);
+}
+
+export async function safeUpdateCaseStatus(caseId: string, status: string, note?: string) {
+  return await apiPatch(`/api/v1/cases/${caseId}/status`, { status, note });
+}
+
+export async function safeAssignCase(caseId: string, assignee?: string, owner?: string) {
+  return await apiPatch(`/api/v1/cases/${caseId}/assign`, { assignee, owner });
+}
+
+export async function safeLinkIncidentToCase(caseId: string, incidentId: string) {
+  return await apiPost(`/api/v1/cases/${caseId}/incidents`, { incident_id: incidentId });
+}
+
+export async function safeUnlinkIncidentFromCase(caseId: string, incidentId: string) {
+  return await apiDelete(`/api/v1/cases/${caseId}/incidents/${incidentId}`);
+}
+
+export async function safeLinkAlertToCase(caseId: string, alertId: string) {
+  return await apiPost(`/api/v1/cases/${caseId}/alerts`, { alert_id: alertId });
+}
+
+export async function safeUnlinkAlertFromCase(caseId: string, alertId: string) {
+  return await apiDelete(`/api/v1/cases/${caseId}/alerts/${alertId}`);
+}
+
+export async function safeLinkIndicatorToCase(caseId: string, indicatorId: string) {
+  return await apiPost(`/api/v1/cases/${caseId}/indicators`, { indicator_id: indicatorId });
+}
+
+export async function safeUnlinkIndicatorFromCase(caseId: string, indicatorId: string) {
+  return await apiDelete(`/api/v1/cases/${caseId}/indicators/${indicatorId}`);
+}
+
+export async function safeAddCaseEvidence(caseId: string, payload: any) {
+  return await apiPost(`/api/v1/cases/${caseId}/evidence`, payload);
+}
+
+export async function safeFetchCaseEvidence(caseId: string) {
+  const res = await apiGet(`/api/v1/cases/${caseId}/evidence`);
+  return res || [];
+}
+
+export async function safeAddCaseNote(caseId: string, content: string) {
+  return await apiPost(`/api/v1/cases/${caseId}/notes`, { content });
+}
+
+export async function safeFetchCaseNotes(caseId: string) {
+  const res = await apiGet(`/api/v1/cases/${caseId}/notes`);
+  return res || [];
+}
+
+export async function safeFetchCaseTimeline(caseId: string) {
+  const res = await apiGet(`/api/v1/cases/${caseId}/timeline`);
+  return res || [];
+}
+
+export async function safeFetchCaseAudit(caseId: string) {
+  const res = await apiGet(`/api/v1/cases/${caseId}/audit`);
+  return res || [];
+}
+
+export async function safeGenerateExecutiveReport(timeRange: string = "30d") {
+  return await apiPost("/api/v1/reports/executive", { time_range: timeRange });
+}
+
+export async function safeFetchReports() {
+  const res = await apiGet("/api/v1/reports/");
+  return res || [];
+}
+
+export async function safeFetchReport(reportId: string) {
+  return await apiGet(`/api/v1/reports/${reportId}`);
+}
+
+export function getReportDownloadUrl(reportId: string): string {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return `${base}/api/v1/reports/${reportId}/download`;
 }

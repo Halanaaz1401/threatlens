@@ -26,6 +26,25 @@ from app.models.feed import Feed
 from app.models.integration import WebhookConfig
 from app.models.audit import AuditLog
 from app.models.user import User, Role
+from app.models.case import (
+    Case,
+    CaseStatus,
+    CaseSeverity,
+    CasePriority,
+    CaseIncident,
+    CaseAlert,
+    CaseIndicator,
+    CaseEvidence,
+    CaseNote,
+    CaseTimeline,
+    VALID_CASE_STATUS_TRANSITIONS,
+    is_valid_case_status_transition,
+)
+from app.models.report import (
+    Report,
+    ReportType,
+    ReportStatus,
+)
 
 __all__ = [
     "Base",
@@ -53,6 +72,21 @@ __all__ = [
     "AuditLog",
     "User",
     "Role",
+    "Case",
+    "CaseStatus",
+    "CaseSeverity",
+    "CasePriority",
+    "CaseIncident",
+    "CaseAlert",
+    "CaseIndicator",
+    "CaseEvidence",
+    "CaseNote",
+    "CaseTimeline",
+    "VALID_CASE_STATUS_TRANSITIONS",
+    "is_valid_case_status_transition",
+    "Report",
+    "ReportType",
+    "ReportStatus",
 ]
 
 

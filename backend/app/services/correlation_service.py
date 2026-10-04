@@ -262,6 +262,13 @@ def correlate_alert_to_incident(db: Session, alert: Alert) -> Incident:
             }
         )
 
+        # Phase 4E: Automated Incident -> Case clustering hook
+        try:
+            from app.services.case_service import link_or_create_case_for_incident
+            link_or_create_case_for_incident(db, best_incident)
+        except Exception as case_err:
+            logger.debug(f"Automated case clustering for incident {best_incident.id} skipped: {case_err}")
+
         logger.info(f"Attached Alert {alert.id} to existing Incident {best_incident.incident_code} (Score: {best_score})")
         return best_incident
 
@@ -335,6 +342,13 @@ def correlate_alert_to_incident(db: Session, alert: Alert) -> Incident:
                 "severity": new_incident.severity
             }
         )
+
+        # Phase 4E: Automated Incident -> Case clustering hook
+        try:
+            from app.services.case_service import link_or_create_case_for_incident
+            link_or_create_case_for_incident(db, new_incident)
+        except Exception as case_err:
+            logger.debug(f"Automated case creation for incident {new_incident.id} skipped: {case_err}")
 
         logger.info(f"Created new Incident {new_incident.incident_code} from Alert {alert.id}")
         return new_incident
