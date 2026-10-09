@@ -110,6 +110,7 @@ def _find_feed(db: Session, identifier: str) -> Optional[Feed]:
     return feed
 
 @router.get("/")
+@router.get("")
 def list_feeds(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user)

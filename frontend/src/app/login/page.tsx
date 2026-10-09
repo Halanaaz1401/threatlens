@@ -102,7 +102,7 @@ function LoginForm() {
 
       {/* Error Alert */}
       {errorMessage && (
-        <div className="mb-6 p-3 rounded-lg bg-red-950/60 border border-red-500/60 text-red-300 text-xs flex items-center gap-2">
+        <div id="login-error-banner" className="mb-6 p-3 rounded-lg bg-red-950/60 border border-red-500/60 text-red-300 text-xs flex items-center gap-2">
           <span className="text-base">⚠️</span>
           <span>{errorMessage}</span>
         </div>

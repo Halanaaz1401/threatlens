@@ -74,6 +74,7 @@ class ExpireStaleRequest(BaseModel):
     batch_size: int = 100
 
 @router.get("/")
+@router.get("")
 def get_indicators(
     skip: int = 0,
     limit: int = 50,

@@ -223,6 +223,7 @@ export function Navbar() {
           {isAuthenticated ? (
             <div className="relative" ref={accountMenuRef}>
               <button
+                id="header-account-menu-btn"
                 type="button"
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
                 className="flex items-center gap-2 bg-[#0d1527] border border-slate-700/80 hover:border-cyan-500/80 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer"
@@ -237,7 +238,7 @@ export function Navbar() {
                   <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[110px]">
                     {user?.full_name || user?.email?.split("@")[0] || "Operator"}
                   </span>
-                  <span className="text-[9px] text-cyan-400 font-mono uppercase leading-tight truncate max-w-[110px]">
+                  <span id="header-user-role-badge" className="text-[9px] text-cyan-400 font-mono uppercase leading-tight truncate max-w-[110px]">
                     {serverRole || role}
                   </span>
                 </div>
@@ -305,6 +306,7 @@ export function Navbar() {
                   {/* Sign Out Button */}
                   <div className="pt-2 border-t border-slate-800">
                     <button
+                      id="header-logout-btn"
                       type="button"
                       onClick={async () => {
                         setAccountMenuOpen(false);
@@ -321,6 +323,7 @@ export function Navbar() {
             </div>
           ) : (
             <Link
+              id="header-signin-btn"
               href="/login"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition shadow-sm shadow-cyan-950/60 shrink-0"
             >

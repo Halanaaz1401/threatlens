@@ -223,6 +223,7 @@ def serialize_case_detail(case: Case) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @router.get("/")
+@router.get("")
 def list_cases(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -263,6 +264,7 @@ def list_cases(
     return [serialize_case_summary(c) for c in cases]
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_case(
     payload: CaseCreatePayload,
     db: Session = Depends(get_db),

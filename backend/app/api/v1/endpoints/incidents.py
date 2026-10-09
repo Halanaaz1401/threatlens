@@ -110,6 +110,7 @@ def ingest_and_correlate(
     return {"status": "LOG_PROCESSED_NO_MATCH"}
 
 @router.get("/")
+@router.get("")
 def get_incidents(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),

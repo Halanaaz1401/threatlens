@@ -88,6 +88,7 @@ def get_widget_catalog(current_user: User = Depends(require_authenticated_user))
 # ---------------------------------------------------------------------------
 
 @router.get("")
+@router.get("/")
 def list_dashboards(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
