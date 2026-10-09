@@ -10,6 +10,17 @@ import {
   safeDeleteDetectionRule,
   safeTestDetectionRule,
 } from "@/lib/api";
+import {
+  Settings,
+  FlaskConical,
+  Plus,
+  Shield,
+  RotateCw,
+  Search,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
 
 interface ConditionItem {
   field: string;
@@ -234,9 +245,9 @@ export function DetectionRulesManager() {
       {/* Action Notification */}
       {actionMessage && (
         <div className="bg-[#17181B] border border-[#19D5E5]/40 p-3 rounded-lg text-[#19D5E5] text-xs flex items-center justify-between shadow-lg">
-          <span>{actionMessage}</span>
-          <button onClick={() => setActionMessage(null)} className="text-[#72747A] hover:text-white font-bold ml-4 cursor-pointer">
-            ✕
+          <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-[#19D5E5] shrink-0" /> {actionMessage}</span>
+          <button onClick={() => setActionMessage(null)} className="text-[#72747A] hover:text-white ml-4 cursor-pointer" aria-label="Dismiss notification">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -246,7 +257,7 @@ export function DetectionRulesManager() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-              ⚙️ Configurable Detection Rules &amp; Alert Routing
+              <Settings className="w-4 h-4 text-[#19D5E5]" /> Configurable Detection Rules &amp; Alert Routing
             </h2>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
               FR-17 &amp; FR-18
@@ -266,7 +277,7 @@ export function DetectionRulesManager() {
               }}
               className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#F2F2F0] font-bold px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer"
             >
-              <span>🧪</span>
+              <FlaskConical className="w-3.5 h-3.5 text-[#19D5E5]" />
               <span>Dry-Run Test Rule</span>
             </button>
           )}
@@ -276,7 +287,7 @@ export function DetectionRulesManager() {
               onClick={() => setShowCreateModal(true)}
               className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
             >
-              <span>+</span>
+              <Plus className="w-3.5 h-3.5" />
               <span>Create Rule</span>
             </button>
           )}
@@ -310,13 +321,13 @@ export function DetectionRulesManager() {
         <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-              <span>📋</span> Active Rules Inventory ({rules.length})
+              <Shield className="w-4 h-4 text-[#19D5E5]" /> Active Rules Inventory ({rules.length})
             </h3>
             <button
               onClick={loadRules}
               className="text-xs text-[#72747A] hover:text-[#F2F2F0] flex items-center gap-1 cursor-pointer font-mono"
             >
-              <span>🔄</span> Refresh
+              <RotateCw className="w-3 h-3" /> Refresh
             </button>
           </div>
 
@@ -424,7 +435,7 @@ export function DetectionRulesManager() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-                <span>🔍</span> Rule Inspection &amp; Logic
+                <Search className="w-4 h-4 text-[#19D5E5]" /> Rule Inspection &amp; Logic
               </h3>
               {selectedRule && (
                 <span className="text-[10px] font-mono text-[#A5A6AA] bg-[#090A0C] px-2 py-0.5 rounded border border-[#2B2C30]">
@@ -501,7 +512,7 @@ export function DetectionRulesManager() {
                     }}
                     className="w-full bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 border border-[#2B2C30] cursor-pointer"
                   >
-                    <span>🧪</span>
+                    <FlaskConical className="w-3.5 h-3.5 text-[#19D5E5]" />
                     <span>Test Against Sample IOC</span>
                   </button>
                 )}
@@ -521,13 +532,14 @@ export function DetectionRulesManager() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
               <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2">
-                <span>➕</span> Create Configurable Detection Rule
+                <Plus className="w-4 h-4 text-[#19D5E5]" /> Create Configurable Detection Rule
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-[#72747A] hover:text-[#F2F2F0] font-bold cursor-pointer"
+                className="text-[#72747A] hover:text-[#F2F2F0] p-1 rounded-lg bg-[#17181B] border border-[#2B2C30] transition cursor-pointer"
+                aria-label="Close dialog"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -668,9 +680,10 @@ export function DetectionRulesManager() {
                         <button
                           type="button"
                           onClick={() => handleRemoveCondition(idx)}
-                          className="text-red-400 hover:text-red-300 px-2 py-1 font-bold cursor-pointer"
+                          className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                          aria-label="Remove condition"
                         >
-                          ✕
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -704,13 +717,14 @@ export function DetectionRulesManager() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
               <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2">
-                <span>🧪</span> Rule Dry-Run Testing (Side-Effect Free)
+                <FlaskConical className="w-4 h-4 text-[#19D5E5]" /> Rule Dry-Run Testing (Side-Effect Free)
               </h3>
               <button
                 onClick={() => setShowTestModal(false)}
-                className="text-[#72747A] hover:text-[#F2F2F0] font-bold cursor-pointer"
+                className="text-[#72747A] hover:text-[#F2F2F0] p-1 rounded-lg bg-[#17181B] border border-[#2B2C30] transition cursor-pointer"
+                aria-label="Close dialog"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

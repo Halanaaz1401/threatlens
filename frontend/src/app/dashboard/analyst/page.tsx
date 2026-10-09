@@ -17,6 +17,20 @@ import {
 
 import { DetectionRulesManager } from "@/components/DetectionRulesManager";
 import { FeedManagement } from "@/components/FeedManagement";
+import {
+  AlertTriangle,
+  X,
+  RefreshCw,
+  Clock,
+  ArrowRight,
+  CheckCircle2,
+  Search,
+  Edit2,
+  Trash2,
+  ShieldAlert,
+  Filter,
+  AlertCircle,
+} from "lucide-react";
 
 interface IOCItem {
   id: string;
@@ -281,13 +295,15 @@ export default function AnalystDashboardPage() {
     <div className="space-y-6 w-full min-h-screen">
       {/* Toast Alert */}
       {liveToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0f172a] border border-red-500/80 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-bounce">
-          <span className="text-xl">⚠️</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-[#111214] border border-red-500/80 rounded-xl p-4 shadow-2xl flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
           <div>
             <div className="text-xs font-bold text-red-400">Live Ingestion Alert Triggered</div>
-            <div className="text-xs font-mono text-slate-200">{liveToast.indicator || liveToast.ioc_value}</div>
+            <div className="text-xs font-mono text-[#F2F2F0]">{liveToast.indicator || liveToast.ioc_value}</div>
           </div>
-          <button onClick={() => setLiveToast(null)} className="text-slate-400 hover:text-white">✕</button>
+          <button onClick={() => setLiveToast(null)} className="text-[#85858B] hover:text-white ml-2" aria-label="Close alert">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -295,14 +311,14 @@ export default function AnalystDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2B2C30] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-[#F2F2F0] font-editorial-sans">
+            <h1 className="text-lg font-bold text-[#F2F2F0]">
               SOC Analyst Triage &amp; Lifecycle Management
-            </span>
+            </h1>
             <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
               {persona.name} ({persona.title})
             </span>
           </div>
-          <p className="text-xs text-[#72747A] font-mono mt-0.5">
+          <p className="text-xs text-[#85858B] font-mono mt-0.5">
             Real-time live WebSocket stream active &bull; Lifecycle, TTL expiration, and feed provenance monitoring.
           </p>
         </div>
@@ -311,41 +327,53 @@ export default function AnalystDashboardPage() {
           <button
             onClick={handleExpireStale}
             disabled={expiringStale}
-            className="bg-[#17181B] hover:bg-[#202125] disabled:opacity-50 text-[#F2F2F0] border border-[#2B2C30] font-medium px-3 py-2 rounded-lg text-xs flex items-center gap-2 transition"
+            className="bg-[#17181B] hover:bg-[#202125] disabled:opacity-50 text-[#F2F2F0] border border-[#2B2C30] font-medium px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 transition"
             title="Execute backend TTL expiration worker"
           >
+            <Clock className="w-3.5 h-3.5 text-[#85858B]" />
             <span>{expiringStale ? "Expiring..." : "Run TTL Worker"}</span>
           </button>
 
           <button
             onClick={handleSyncFeeds}
             disabled={syncing}
-            className="bg-[#17181B] hover:bg-[#202125] disabled:opacity-50 text-[#F2F2F0] border border-[#2B2C30] font-medium px-4 py-2 rounded-lg text-xs flex items-center gap-2 transition"
+            className="bg-[#17181B] hover:bg-[#202125] disabled:opacity-50 text-[#F2F2F0] border border-[#2B2C30] font-medium px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 transition"
           >
-            <span className={syncing ? "animate-spin" : ""}>🔄</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
             <span>{syncing ? "Ingesting Feeds..." : "Sync Threat Feeds"}</span>
           </button>
 
           <Link
             href="/dashboard/incidents"
-            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs transition"
+            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5"
           >
-            Escalate to IR &rarr;
+            <span>Escalate to IR</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
       {actionSuccess && (
         <div className="p-3 bg-[#111214] border border-[#2B2C30] rounded-xl text-xs text-[#F2F2F0] flex items-center justify-between font-mono">
-          <span>✓ {actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-[#A5A6AA] hover:text-white">✕</button>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess(null)} className="text-[#85858B] hover:text-white" aria-label="Dismiss message">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       {fetchError && (
         <div className="p-3 bg-[#111214] border border-red-500/50 rounded-xl text-xs text-red-400 flex items-center justify-between font-mono">
-          <span>⚠️ {fetchError}</span>
-          <button onClick={() => setFetchError(null)} className="text-red-400 hover:text-white">✕</button>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400" />
+            <span>{fetchError}</span>
+          </div>
+          <button onClick={() => setFetchError(null)} className="text-red-400 hover:text-white" aria-label="Dismiss error">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -573,18 +601,20 @@ export default function AnalystDashboardPage() {
                     {isAnalystOrAbove && (
                       <button
                         onClick={() => openEditModal(selectedIOC)}
-                        className="bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] font-medium py-2 rounded-lg text-xs transition"
+                        className="bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] font-medium py-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5"
                       >
-                        ✏️ Edit Notes / TTL
+                        <Edit2 className="w-3.5 h-3.5 text-[#85858B]" />
+                        <span>Edit Notes / TTL</span>
                       </button>
                     )}
 
                     {isAnalystOrAbove && selectedIOC.status !== "revoked" && (
                       <button
                         onClick={() => setShowRevokeModal(true)}
-                        className="bg-[#17181B] hover:bg-red-950/40 text-red-400 border border-[#2B2C30] hover:border-red-800 font-medium py-2 rounded-lg text-xs transition"
+                        className="bg-[#17181B] hover:bg-red-950/40 text-red-400 border border-[#2B2C30] hover:border-red-800 font-medium py-2 rounded-lg text-xs transition flex items-center justify-center gap-1.5"
                       >
-                        🚫 Revoke / Soft-Delete
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Revoke / Soft-Delete</span>
                       </button>
                     )}
                   </div>
@@ -600,15 +630,17 @@ export default function AnalystDashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
-              <h3 className="text-sm font-bold text-[#F2F2F0] font-editorial-sans">
+              <h3 className="text-sm font-bold text-[#F2F2F0]">
                 Edit IOC: <span className="text-[#19D5E5] font-mono">{selectedIOC.value}</span>
               </h3>
-              <button onClick={() => setShowEditModal(false)} className="text-[#72747A] hover:text-white">✕</button>
+              <button onClick={() => setShowEditModal(false)} className="text-[#85858B] hover:text-white" aria-label="Close modal">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-mono">
               <div>
-                <label className="block text-[#A5A6AA] mb-1">Analyst Notes</label>
+                <label className="block text-[#B0B0B4] mb-1">Analyst Notes</label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
@@ -620,7 +652,7 @@ export default function AnalystDashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[#A5A6AA] mb-1">TLP Protocol</label>
+                  <label className="block text-[#B0B0B4] mb-1">TLP Protocol</label>
                   <select
                     value={editTlp}
                     onChange={(e) => setEditTlp(e.target.value)}
@@ -634,7 +666,7 @@ export default function AnalystDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[#A5A6AA] mb-1">TTL Window (Days)</label>
+                  <label className="block text-[#B0B0B4] mb-1">TTL Window (Days)</label>
                   <input
                     type="number"
                     min={1}
@@ -650,7 +682,7 @@ export default function AnalystDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-4 py-1.5 rounded-lg bg-[#17181B] text-[#A5A6AA] hover:bg-[#202125] hover:text-[#F2F2F0] transition border border-[#2B2C30]"
+                  className="px-4 py-1.5 rounded-lg bg-[#17181B] text-[#B0B0B4] hover:bg-[#202125] hover:text-[#F2F2F0] transition border border-[#2B2C30]"
                 >
                   Cancel
                 </button>
@@ -673,18 +705,21 @@ export default function AnalystDashboardPage() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
               <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
-                <span>🚫</span> Revoke Indicator
+                <Trash2 className="w-4 h-4 text-red-400" />
+                <span>Revoke Indicator</span>
               </h3>
-              <button onClick={() => setShowRevokeModal(false)} className="text-[#72747A] hover:text-white">✕</button>
+              <button onClick={() => setShowRevokeModal(false)} className="text-[#85858B] hover:text-white" aria-label="Close modal">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <p className="text-xs text-[#A5A6AA] leading-relaxed">
+            <p className="text-xs text-[#B0B0B4] leading-relaxed">
               Are you sure you want to revoke <strong className="text-[#F2F2F0] font-mono">{selectedIOC.value}</strong>?
               This will transition the lifecycle state to <strong className="text-amber-400 font-mono">revoked</strong> while preserving all historical provenance.
             </p>
 
             <div>
-              <label className="block text-[#A5A6AA] text-xs font-mono mb-1">Revocation Reason</label>
+              <label className="block text-[#B0B0B4] text-xs font-mono mb-1">Revocation Reason</label>
               <input
                 type="text"
                 value={revokeReason}
@@ -699,7 +734,7 @@ export default function AnalystDashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowRevokeModal(false)}
-                className="px-4 py-1.5 rounded-lg bg-[#17181B] text-[#A5A6AA] hover:bg-[#202125] hover:text-[#F2F2F0] text-xs transition border border-[#2B2C30]"
+                className="px-4 py-1.5 rounded-lg bg-[#17181B] text-[#B0B0B4] hover:bg-[#202125] hover:text-[#F2F2F0] text-xs transition border border-[#2B2C30]"
               >
                 Cancel
               </button>

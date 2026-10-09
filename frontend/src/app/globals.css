@@ -1,15 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* THEME TOKENS — MATCHING REFERENCE DESIGN DIRECTION */
+  /* THEME TOKENS — MONOCHROME PRECISION & SEMANTIC DISTINCTION */
   --bg-primary: #090A0C;
   --bg-secondary: #111214;
   --bg-elevated: #17181B;
-  --bg-card: #131417;
+  --bg-card: #111214;
 
   --text-primary: #F2F2F0;
-  --text-secondary: #A5A6AA;
-  --text-muted: #72747A;
+  --text-secondary: #B0B0B4;
+  --text-muted: #85858B;
 
   --border-subtle: #202125;
   --border-primary: #2B2C30;
@@ -18,10 +19,15 @@
   --accent-cyan: #19D5E5;
   --accent-cyan-glow: rgba(25, 213, 229, 0.15);
 
-  --status-success: #22c55e;
-  --status-warning: #f59e0b;
-  --status-critical: #ef4444;
-  --status-info: #64748b;
+  /* SEMANTIC SECURITY STATE TOKENS */
+  --status-critical: #EF4444;
+  --status-high: #F97316;
+  --status-medium: #EAB308;
+  --status-low: #38BDF8;
+  --status-success: #22C55E;
+  --status-warning: #F59E0B;
+  --status-error: #EF4444;
+  --status-info: #64748B;
 }
 
 html {
@@ -34,14 +40,25 @@ html {
 body {
   color: var(--text-primary);
   background-color: var(--bg-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* TYPOGRAPHY UTILITIES */
+/* TYPOGRAPHY UTILITIES — SEGOE UI AND SPACE MONO */
+.font-sans {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.font-mono,
+.font-mono-tech {
+  font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* PRESERVED HERO TYPOGRAPHY TREATMENT */
 .font-editorial-serif {
   font-family: "Newsreader", "Playfair Display", "Didot", "Bodoni MT", Georgia, "Times New Roman", serif;
   font-style: italic;
@@ -50,13 +67,8 @@ body {
 }
 
 .font-editorial-sans {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
   letter-spacing: -0.025em;
-}
-
-.font-mono-tech {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.04em;
 }
 
 /* DIAGONAL HATCH PATTERNS (FROM REFERENCE SCREENSHOTS) */

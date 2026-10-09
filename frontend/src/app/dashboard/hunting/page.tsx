@@ -13,6 +13,16 @@ import {
   safeDeriveRelationships,
 } from "@/lib/api";
 import { HuntingGraph } from "@/components/HuntingGraph";
+import {
+  Zap,
+  X,
+  Network,
+  Target,
+  AlertTriangle,
+  Search,
+  RotateCw,
+  ArrowRight,
+} from "lucide-react";
 
 function ThreatHuntingContent() {
   const { persona } = useRole();
@@ -209,7 +219,7 @@ function ThreatHuntingContent() {
               </>
             ) : (
               <>
-                <span>⚡</span>
+                <Zap className="w-3.5 h-3.5" />
                 <span>Discover Relationships</span>
               </>
             )}
@@ -235,9 +245,10 @@ function ThreatHuntingContent() {
               <button
                 type="button"
                 onClick={() => { setQuery(""); setSearchResults([]); }}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#72747A] hover:text-[#F2F2F0] text-xs"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#72747A] hover:text-[#F2F2F0]"
+                aria-label="Clear query"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -332,7 +343,7 @@ function ThreatHuntingContent() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-                  <span>🕸️</span> Bounded Indicator Relationship Graph
+                  <Network className="w-4 h-4 text-[#19D5E5]" /> Bounded Indicator Relationship Graph
                 </h2>
                 <p className="text-xs text-[#A5A6AA]">
                   {activeIndicator
@@ -366,7 +377,7 @@ function ThreatHuntingContent() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-                  <span>🎯</span> MITRE ATT&amp;CK Technique Heatmap
+                  <Target className="w-4 h-4 text-[#19D5E5]" /> MITRE ATT&amp;CK Technique Heatmap
                 </h2>
                 <p className="text-xs text-[#A5A6AA]">
                   {hasMitreData
@@ -381,7 +392,7 @@ function ThreatHuntingContent() {
 
             {!hasMitreData || techniques.length === 0 ? (
               <div className="p-6 text-center text-xs text-[#72747A] font-mono bg-[#090A0C] border border-[#2B2C30] rounded-lg space-y-1">
-                <p>⚠️ {mitreData?.message || "No MITRE ATT&CK techniques observed in ingested threat telemetry"}</p>
+                <p className="flex items-center justify-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> {mitreData?.message || "No MITRE ATT&CK techniques observed in ingested threat telemetry"}</p>
                 <p className="text-[10px] text-[#72747A]">Technique IDs are extracted during ingestion and enrichment.</p>
               </div>
             ) : (
@@ -446,14 +457,15 @@ function ThreatHuntingContent() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-                <span>🔍</span> Target Node Inspector
+                <Search className="w-4 h-4 text-[#19D5E5]" /> Target Node Inspector
               </h2>
               {selectedNode && (
                 <button
                   onClick={() => handlePivotNode(selectedNode)}
-                  className="px-2.5 py-1 bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#19D5E5] text-[10px] font-mono font-bold rounded transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#19D5E5] text-[10px] font-mono font-bold rounded transition cursor-pointer"
                 >
-                  Pivot as Root ⟳
+                  <span>Pivot as Root</span>
+                  <RotateCw className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -566,7 +578,7 @@ function ThreatHuntingContent() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div>
               <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-                <span>⚡</span> Pre-Packaged Hunting Queries
+                <Zap className="w-4 h-4 text-[#19D5E5]" /> Pre-Packaged Hunting Queries
               </h2>
               <p className="text-xs text-[#72747A]">Adversary search presets</p>
             </div>

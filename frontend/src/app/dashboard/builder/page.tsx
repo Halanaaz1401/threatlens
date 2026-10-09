@@ -15,6 +15,22 @@ import {
   safeFetchWidgetData,
 } from "@/lib/api";
 import { useRole } from "@/context/RoleContext";
+import {
+  Plus,
+  Copy,
+  Trash2,
+  LayoutDashboard,
+  Grid,
+  RotateCw,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  BarChart2,
+} from "lucide-react";
 
 interface WidgetDef {
   id: string;
@@ -270,7 +286,7 @@ export default function DashboardBuilderPage() {
     if (isWLoading && !data) {
       return (
         <div className="flex items-center justify-center h-32 text-[#72747A] text-xs font-mono">
-          <span className="animate-spin mr-2">🔄</span> Loading real telemetry...
+          <RotateCw className="w-3.5 h-3.5 animate-spin mr-2 inline text-[#19D5E5]" /> Loading real telemetry...
         </div>
       );
     }
@@ -310,8 +326,9 @@ export default function DashboardBuilderPage() {
           </div>
           <div className="text-[11px] text-[#A5A6AA] mt-1 font-medium">{data.label}</div>
           {data.basis && (
-            <div className="text-[10px] text-[#72747A] mt-2 truncate font-mono" title={data.basis}>
-              ℹ️ {data.basis}
+            <div className="text-[10px] text-[#72747A] mt-2 truncate font-mono flex items-center gap-1" title={data.basis}>
+              <Info className="w-3 h-3 text-[#19D5E5] shrink-0" />
+              <span>{data.basis}</span>
             </div>
           )}
         </div>
@@ -521,17 +538,17 @@ export default function DashboardBuilderPage() {
       {/* Notifications */}
       {errorMsg && (
         <div className="bg-[#17181B] border border-red-900/60 text-red-300 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
-          <span>⚠️ {errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white font-bold ml-4">
-            ✕
+          <span className="flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-red-400 shrink-0" /> {errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white ml-4" aria-label="Dismiss error">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       {successMsg && (
         <div className="bg-[#17181B] border border-emerald-900/60 text-emerald-300 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
-          <span>✓ {successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white font-bold ml-4">
-            ✕
+          <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> {successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white ml-4" aria-label="Dismiss message">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -572,24 +589,24 @@ export default function DashboardBuilderPage() {
             onClick={() => setShowNewDashboardModal(true)}
             className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold text-xs px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
-            <span>+</span> New Dashboard
+            <Plus className="w-3.5 h-3.5" /> New Dashboard
           </button>
 
           {activeDashboard && (
             <>
               <button
                 onClick={handleDuplicateDashboard}
-                className="bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer"
+                className="bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer flex items-center gap-1.5"
                 title="Duplicate Dashboard"
               >
-                📋 Duplicate
+                <Copy className="w-3.5 h-3.5" /> Duplicate
               </button>
               <button
                 onClick={handleDeleteDashboard}
-                className="bg-[#17181B] hover:bg-red-950 text-red-400 text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer"
+                className="bg-[#17181B] hover:bg-red-950 text-red-400 text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer flex items-center gap-1.5"
                 title="Delete Dashboard"
               >
-                🗑️ Delete
+                <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             </>
           )}
@@ -599,11 +616,11 @@ export default function DashboardBuilderPage() {
       {/* Main Content Area */}
       {loading ? (
         <div className="flex items-center justify-center h-64 text-[#72747A] text-sm font-mono">
-          <span className="animate-spin mr-3 text-[#19D5E5] text-xl">🔄</span> Loading custom dashboard cockpit...
+          <RotateCw className="w-5 h-5 animate-spin mr-3 text-[#19D5E5]" /> Loading custom dashboard cockpit...
         </div>
       ) : !activeDashboard ? (
         <div className="bg-[#111214] border border-dashed border-[#2B2C30] rounded-xl p-12 text-center max-w-xl mx-auto space-y-4">
-          <div className="text-4xl text-[#72747A]">📊</div>
+          <LayoutDashboard className="w-12 h-12 text-[#72747A] mx-auto" />
           <h3 className="text-base font-bold text-[#F2F2F0]">No Dashboards Available</h3>
           <p className="text-xs text-[#A5A6AA]">
             Create your first custom SOC dashboard to assemble and arrange live security widgets.
@@ -643,9 +660,11 @@ export default function DashboardBuilderPage() {
               </span>
               <div className="relative group">
                 <button
-                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] text-xs font-bold px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] text-xs font-bold px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>+</span> Add Widget ▾
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Widget</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 {/* Catalog Dropdown */}
                 <div className="absolute right-0 top-full mt-1.5 w-72 bg-[#111214] border border-[#2B2C30] rounded-xl shadow-2xl p-2 z-50 hidden group-hover:block max-h-96 overflow-y-auto">
@@ -675,7 +694,7 @@ export default function DashboardBuilderPage() {
           {/* 12-Column Responsive Grid */}
           {!activeDashboard.widgets || activeDashboard.widgets.length === 0 ? (
             <div className="bg-[#111214] border border-dashed border-[#2B2C30] rounded-xl p-16 text-center space-y-3">
-              <div className="text-3xl text-[#72747A]">🧩</div>
+              <Grid className="w-12 h-12 text-[#72747A] mx-auto" />
               <h4 className="text-sm font-bold text-[#A5A6AA]">Dashboard is Empty</h4>
               <p className="text-xs text-[#72747A] max-w-md mx-auto">
                 No security widgets have been added to this dashboard yet. Use the “Add Widget” button above to select telemetry components.
@@ -703,7 +722,7 @@ export default function DashboardBuilderPage() {
                     {/* Widget Card Header */}
                     <div className="flex items-center justify-between border-b border-[#2B2C30] pb-2 mb-3">
                       <div className="flex items-center gap-2 truncate">
-                        <span className="text-[#19D5E5] text-xs">◈</span>
+                        <BarChart2 className="w-3.5 h-3.5 text-[#19D5E5] shrink-0" />
                         <h4 className="text-xs font-bold text-[#F2F2F0] tracking-wide truncate" title={widget.title}>
                           {widget.title}
                         </h4>
@@ -730,8 +749,9 @@ export default function DashboardBuilderPage() {
                           onClick={() => loadSingleWidgetData(activeDashboard.id, widget.id, widget.time_range)}
                           className="text-[#72747A] hover:text-[#19D5E5] text-xs p-1 transition cursor-pointer"
                           title="Refresh Widget Telemetry"
+                          aria-label="Refresh Widget Telemetry"
                         >
-                          🔄
+                          <RotateCw className="w-3 h-3" />
                         </button>
 
                         {/* Resize Controls */}
@@ -740,16 +760,18 @@ export default function DashboardBuilderPage() {
                           disabled={widget.width <= 3}
                           className="text-[#72747A] hover:text-[#F2F2F0] disabled:opacity-30 text-[10px] p-0.5 cursor-pointer"
                           title="Narrow Widget Width"
+                          aria-label="Narrow Widget Width"
                         >
-                          ◀
+                          <ChevronLeft className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => handleResizeWidget(widget, 1)}
                           disabled={widget.width >= 12}
                           className="text-[#72747A] hover:text-[#F2F2F0] disabled:opacity-30 text-[10px] p-0.5 cursor-pointer"
                           title="Widen Widget Width"
+                          aria-label="Widen Widget Width"
                         >
-                          ▶
+                          <ChevronRight className="w-3 h-3" />
                         </button>
 
                         {/* Delete */}
@@ -757,8 +779,9 @@ export default function DashboardBuilderPage() {
                           onClick={() => handleDeleteWidget(widget.id)}
                           className="text-[#72747A] hover:text-red-400 text-xs p-1 transition cursor-pointer"
                           title="Remove Widget"
+                          aria-label="Remove Widget"
                         >
-                          ✕
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -781,9 +804,10 @@ export default function DashboardBuilderPage() {
               <h3 className="font-bold text-[#F2F2F0] text-sm">Create New Dashboard</h3>
               <button
                 onClick={() => setShowNewDashboardModal(false)}
-                className="text-[#72747A] hover:text-[#F2F2F0] text-sm cursor-pointer"
+                className="text-[#72747A] hover:text-[#F2F2F0] p-1 rounded-lg bg-[#17181B] border border-[#2B2C30] transition cursor-pointer"
+                aria-label="Close dialog"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -862,9 +886,10 @@ export default function DashboardBuilderPage() {
               </div>
               <button
                 onClick={() => setShowAddWidgetModal(false)}
-                className="text-[#72747A] hover:text-[#F2F2F0] text-sm cursor-pointer"
+                className="text-[#72747A] hover:text-[#F2F2F0] p-1 rounded-lg bg-[#17181B] border border-[#2B2C30] transition cursor-pointer"
+                aria-label="Close dialog"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

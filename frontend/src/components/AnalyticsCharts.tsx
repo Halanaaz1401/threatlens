@@ -13,6 +13,7 @@ import {
   Cell,
 } from "recharts";
 import { safeFetchAnalyticsOverview } from "@/lib/api";
+import { TrendingUp, PieChart as PieChartIcon } from "lucide-react";
 
 interface TimeSeriesPoint {
   label: string;
@@ -95,10 +96,11 @@ export default function AnalyticsCharts({
       <div className="lg:col-span-8 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-              <span>📈</span> Threat Ingestion &amp; Severity Velocity
+            <h3 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#19D5E5]" />
+              <span>Threat Ingestion &amp; Severity Velocity</span>
             </h3>
-            <p className="text-xs text-[#A5A6AA]">
+            <p className="text-xs text-[#B0B0B4]">
               Correlated throughput across intelligence feeds ({totalIngests} total ingests)
             </p>
           </div>
@@ -111,7 +113,7 @@ export default function AnalyticsCharts({
                 className={`px-2.5 py-0.5 rounded font-bold transition cursor-pointer ${
                   selectedRange === tr
                     ? "bg-[#17181B] text-[#19D5E5] border border-[#19D5E5]/40"
-                    : "text-[#72747A] hover:text-[#F2F2F0]"
+                    : "text-[#85858B] hover:text-[#F2F2F0]"
                 }`}
               >
                 {tr}
@@ -122,29 +124,29 @@ export default function AnalyticsCharts({
 
         <div className="h-64 w-full">
           {isLoading ? (
-            <div className="h-full w-full flex items-center justify-center text-xs text-[#72747A] font-mono animate-pulse">
+            <div className="h-full w-full flex items-center justify-center text-xs text-[#85858B] font-mono animate-pulse">
               Aggregating live threat velocity...
             </div>
           ) : series.length === 0 || totalIngests === 0 ? (
-            <div className="h-full w-full flex flex-col items-center justify-center text-xs text-[#72747A] font-mono gap-1">
+            <div className="h-full w-full flex flex-col items-center justify-center text-xs text-[#85858B] font-mono gap-1">
               <span>Zero indicator ingests in selected {selectedRange} window</span>
-              <span className="text-[10px] text-[#72747A]">Feed ingestion active</span>
+              <span className="text-[10px] text-[#85858B]">Feed ingestion active</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series}>
                 <defs>
                   <linearGradient id="colorIngest" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#19D5E5" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#19D5E5" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#19D5E5" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="label" stroke="#72747A" fontSize={11} />
-                <YAxis stroke="#72747A" fontSize={11} allowDecimals={false} />
+                <XAxis dataKey="label" stroke="#85858B" fontSize={11} tickLine={false} />
+                <YAxis stroke="#85858B" fontSize={11} allowDecimals={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#111214",
@@ -167,7 +169,7 @@ export default function AnalyticsCharts({
                   type="monotone"
                   dataKey="high_severity"
                   name="High Severity"
-                  stroke="#f87171"
+                  stroke="#EF4444"
                   strokeWidth={1.5}
                   fillOpacity={1}
                   fill="url(#colorHigh)"
@@ -181,17 +183,18 @@ export default function AnalyticsCharts({
       {/* Severity Ratio Donut */}
       <div className="lg:col-span-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-            <span>🎯</span> Active Severity Distribution
+          <h3 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
+            <PieChartIcon className="w-4 h-4 text-[#19D5E5]" />
+            <span>Active Severity Distribution</span>
           </h3>
-          <p className="text-xs text-[#A5A6AA]">Aggregated risk tiers ({totalSeverityCount} IOCs)</p>
+          <p className="text-xs text-[#B0B0B4]">Aggregated risk tiers ({totalSeverityCount} IOCs)</p>
         </div>
 
         <div className="h-44 w-full flex items-center justify-center">
           {isLoading ? (
-            <div className="text-xs text-[#72747A] font-mono animate-pulse">Calculating...</div>
+            <div className="text-xs text-[#85858B] font-mono animate-pulse">Calculating...</div>
           ) : totalSeverityCount === 0 ? (
-            <div className="text-xs text-[#72747A] font-mono">No active indicators</div>
+            <div className="text-xs text-[#85858B] font-mono">No active indicators</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -223,7 +226,7 @@ export default function AnalyticsCharts({
         <div className="space-y-1.5 text-xs font-medium">
           {severity.map((item, i) => (
             <div key={i} className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-[#A5A6AA]">
+              <span className="flex items-center gap-2 text-[#B0B0B4]">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: item.color }}

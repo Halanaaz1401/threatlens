@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { AlertTriangle, Network } from "lucide-react";
 
 interface NodeData {
   id: string;
@@ -42,14 +43,14 @@ interface HuntingGraphProps {
   onPivotNode: (node: NodeData) => void;
 }
 
-const TYPE_ICONS: Record<string, string> = {
-  ip: "🌐",
-  domain: "🏢",
-  url: "🔗",
-  cve: "🛡️",
-  hash_md5: "🔑",
-  hash_sha256: "🔑",
-  email: "✉️",
+const TYPE_LABELS: Record<string, string> = {
+  ip: "IP",
+  domain: "DOM",
+  url: "URL",
+  cve: "CVE",
+  hash_md5: "MD5",
+  hash_sha256: "SHA",
+  email: "EML",
 };
 
 const SEVERITY_COLORS: Record<string, { bg: string; border: string; text: string; glow: string }> = {
@@ -159,7 +160,7 @@ export function HuntingGraph({
   if (error) {
     return (
       <div className="w-full h-[520px] bg-[#090A0C] border border-red-900/60 rounded-xl flex flex-col items-center justify-center p-8 space-y-3">
-        <span className="text-2xl text-red-400">⚠️</span>
+        <AlertTriangle className="w-8 h-8 text-red-400" />
         <div className="text-center space-y-1 max-w-md">
           <p className="text-xs font-mono font-bold text-red-400">Graph Query Error</p>
           <p className="text-[11px] text-[#A5A6AA]">{error}</p>
@@ -171,7 +172,7 @@ export function HuntingGraph({
   if (!graphData || graphData.nodes.length === 0) {
     return (
       <div className="w-full h-[520px] bg-[#090A0C] border border-[#2B2C30] rounded-xl flex flex-col items-center justify-center p-8 space-y-3">
-        <span className="text-2xl text-[#72747A]">🕸️</span>
+        <Network className="w-8 h-8 text-[#72747A]" />
         <div className="text-center space-y-1 max-w-md">
           <p className="text-xs font-mono font-bold text-[#F2F2F0]">No Indicator Selected For Graph Analysis</p>
           <p className="text-[11px] text-[#72747A]">
@@ -217,7 +218,10 @@ export function HuntingGraph({
       {/* Single Node Isolated Banner */}
       {isSingleNode && (
         <div className="absolute bottom-3 left-3 right-3 z-10 p-2.5 rounded-lg bg-[#17181B] border border-amber-900/60 text-[11px] text-amber-300 flex items-center justify-between">
-          <span>⚠️ Isolated Node: No known relationships recorded in the threat graph yet.</span>
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            Isolated Node: No known relationships recorded in the threat graph yet.
+          </span>
           <span className="font-mono text-[10px] text-amber-400">Click &apos;Discover Relationships&apos; to link evidence</span>
         </div>
       )}
@@ -327,7 +331,7 @@ export function HuntingGraph({
             const isRoot = node.is_root || node.id === graphData.root_id;
             const isHovered = hoveredNode?.id === node.id;
             const sevColor = SEVERITY_COLORS[node.severity] || SEVERITY_COLORS.LOW;
-            const icon = TYPE_ICONS[node.type] || "🔹";
+            const typeBadge = TYPE_LABELS[node.type] || "IOC";
             const radius = isRoot ? 24 : 18;
 
             return (
@@ -359,13 +363,16 @@ export function HuntingGraph({
                   strokeWidth={isRoot ? 2 : 1}
                 />
 
-                {/* Node Center Icon */}
+                {/* Node Center Monospace Label */}
                 <text
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={isRoot ? "13" : "10"}
+                  fontSize={isRoot ? "10" : "8.5"}
+                  fontFamily="monospace"
+                  fontWeight="bold"
+                  fill={isRoot ? "#F2F2F0" : sevColor.text}
                 >
-                  {icon}
+                  {typeBadge}
                 </text>
 
                 {/* Node Text Label */}

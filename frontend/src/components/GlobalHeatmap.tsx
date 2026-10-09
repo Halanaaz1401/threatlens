@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 import { safeFetchGeoAnalytics } from "@/lib/api";
+import { Globe, Radio } from "lucide-react";
 
 // Dynamic import with SSR completely disabled
 const MapContainer = dynamic(
@@ -123,8 +124,8 @@ export function GlobalHeatmap() {
       {/* Heatmap Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] text-[#19D5E5] font-bold font-mono">
-            ((o))
+          <span className="w-6 h-6 rounded-lg bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[#19D5E5]">
+            <Radio className="w-3.5 h-3.5" />
           </span>
           <h2 className="text-sm font-semibold text-[#F2F2F0] font-mono">
             Global Threat Heatmap &amp; Origin Telemetry
@@ -142,12 +143,12 @@ export function GlobalHeatmap() {
           Loading geographic telemetry from database...
         </div>
       ) : !hasData || threatLocations.length === 0 ? (
-        <div className="h-[320px] w-full bg-[#090A0C] rounded-xl border border-[#2B2C30] flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-10 h-10 rounded-full bg-[#111214] border border-[#2B2C30] flex items-center justify-center text-[#72747A] text-lg mb-2">
-            🌍
+        <div className="h-[320px] w-full bg-[#090A0C] rounded-xl border border-[#2B2C30] flex flex-col items-center justify-center p-6 text-center space-y-2">
+          <div className="w-10 h-10 rounded-full bg-[#111214] border border-[#2B2C30] flex items-center justify-center text-[#72747A]">
+            <Globe className="w-5 h-5 text-[#72747A]" />
           </div>
           <h3 className="text-xs font-semibold text-[#A5A6AA]">No Geographic Threat Telemetry Available</h3>
-          <p className="text-[11px] text-[#72747A] mt-1 max-w-md">
+          <p className="text-[11px] text-[#72747A] max-w-md">
             No indicators currently possess geolocation attribution records. ThreatLens strictly displays backend-verified geographic intelligence and does not synthesize speculative attack locations.
           </p>
         </div>

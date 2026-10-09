@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 interface ThreatLensOrbitalProps {
   className?: string;
@@ -29,8 +29,6 @@ export default function ThreatLensOrbital({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [coords, setCoords] = useState("N 148°");
-  const [isInteracting, setIsInteracting] = useState(false);
-  const [pulseWave, setPulseWave] = useState(0);
 
   // Rotation angles
   const rotXRef = useRef(0.35);
@@ -113,19 +111,19 @@ export default function ThreatLensOrbital({
       rz: number
     ): [number, number, number] {
       // Rotation around X
-      let y1 = y * Math.cos(rx) - z * Math.sin(rx);
-      let z1 = y * Math.sin(rx) + z * Math.cos(rx);
-      let x1 = x;
+      const y1 = y * Math.cos(rx) - z * Math.sin(rx);
+      const z1 = y * Math.sin(rx) + z * Math.cos(rx);
+      const x1 = x;
 
       // Rotation around Y
-      let x2 = x1 * Math.cos(ry) + z1 * Math.sin(ry);
-      let z2 = -x1 * Math.sin(ry) + z1 * Math.cos(ry);
-      let y2 = y1;
+      const x2 = x1 * Math.cos(ry) + z1 * Math.sin(ry);
+      const z2 = -x1 * Math.sin(ry) + z1 * Math.cos(ry);
+      const y2 = y1;
 
       // Rotation around Z
-      let x3 = x2 * Math.cos(rz) - y2 * Math.sin(rz);
-      let y3 = x2 * Math.sin(rz) + y2 * Math.cos(rz);
-      let z3 = z2;
+      const x3 = x2 * Math.cos(rz) - y2 * Math.sin(rz);
+      const y3 = x2 * Math.sin(rz) + y2 * Math.cos(rz);
+      const z3 = z2;
 
       return [x3, y3, z3];
     }
@@ -341,7 +339,6 @@ export default function ThreatLensOrbital({
   const handlePointerDown = (e: React.PointerEvent) => {
     isDraggingRef.current = true;
     dragStartRef.current = { x: e.clientX, y: e.clientY };
-    setIsInteracting(true);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
@@ -357,7 +354,6 @@ export default function ThreatLensOrbital({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     isDraggingRef.current = false;
-    setIsInteracting(false);
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {
@@ -365,10 +361,9 @@ export default function ThreatLensOrbital({
     }
   };
 
-  // Click to pulse / reforge
+  // Click to pulse / rotate
   const handleClick = () => {
-    pulseRef.current = 1.0;
-    setPulseWave((prev) => prev + 1);
+    targetRotYRef.current += 0.5;
   };
 
   return (

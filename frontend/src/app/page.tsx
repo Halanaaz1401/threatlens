@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
 import { safeFetchAnalyticsKPIs } from "@/lib/api";
 import ThreatLensOrbital from "@/components/ThreatLensOrbital";
+import { ShieldAlert, AlertTriangle, Crosshair, TrendingUp, ArrowRight } from "lucide-react";
 
 export default function HomePage() {
   const { role, serverRole, persona, user, isAuthenticated } = useRole();
@@ -65,7 +66,7 @@ export default function HomePage() {
       role: "Tier-2 SOC Analyst",
       action: "Triage Alert Queue",
       href: "/dashboard/analyst",
-      icon: "🛡️",
+      icon: ShieldAlert,
       tag: "Alert Triage",
       desc: "Live stream ingestion, automated single-click IOC enrichment with VirusTotal/AbuseIPDB, and correlation scoring.",
     },
@@ -74,7 +75,7 @@ export default function HomePage() {
       role: "Incident Response Lead",
       action: "Manage Active Incidents",
       href: "/dashboard/incidents",
-      icon: "⚠️",
+      icon: AlertTriangle,
       tag: "Incident Operations",
       desc: "Containment checklist tracking, chronological forensic audit timelines, and direct evidence-backed IR dossier exports.",
     },
@@ -83,7 +84,7 @@ export default function HomePage() {
       role: "Threat Hunter",
       action: "Launch Hunting Graph",
       href: "/dashboard/hunting",
-      icon: "🎯",
+      icon: Crosshair,
       tag: "Adversary Pivoting",
       desc: "Elasticsearch full-text querying, infrastructure node pivoting, MITRE ATT&CK overlays, and reusable hunting rule templates.",
     },
@@ -92,7 +93,7 @@ export default function HomePage() {
       role: "Chief Information Security Officer (CISO)",
       action: "Executive Board View",
       href: "/dashboard/executive",
-      icon: "📈",
+      icon: TrendingUp,
       tag: "Risk & Governance",
       desc: "Enterprise risk posture overview, MTTD/MTTR operational health benchmarks, and automated board-ready reporting.",
     },
@@ -250,19 +251,19 @@ export default function HomePage() {
             className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-4 sm:p-5 transition-all duration-150 flex flex-col justify-between space-y-3"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-[#72747A] uppercase tracking-wider block truncate">
+              <span className="text-[11px] font-mono text-[#85858B] uppercase tracking-wider block truncate">
                 {stat.label}
               </span>
-              <span className="text-[9px] font-mono text-[#A5A6AA] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
+              <span className="text-[10px] font-mono text-[#B0B0B4] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
                 {stat.meta}
               </span>
             </div>
 
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-2xl sm:text-3xl font-bold font-editorial-sans text-[#F2F2F0]">
+              <span className="text-2xl sm:text-3xl font-bold text-[#F2F2F0]">
                 {stat.value}
               </span>
-              <span className="text-[10px] font-mono text-[#A5A6AA] bg-[#17181B] px-2 py-0.5 rounded border border-[#2B2C30]">
+              <span className="text-[10px] font-mono text-[#B0B0B4] bg-[#17181B] px-2 py-0.5 rounded border border-[#2B2C30]">
                 {stat.change}
               </span>
             </div>
@@ -296,10 +297,10 @@ export default function HomePage() {
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xl p-2 rounded-lg bg-[#17181B] border border-[#2B2C30]">
-                    {item.icon}
-                  </span>
-                  <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded bg-[#17181B] border border-[#2B2C30] text-[#A5A6AA]">
+                  <div className="p-2 rounded-lg bg-[#17181B] border border-[#2B2C30] text-[#F2F2F0]">
+                    <item.icon className="w-4 h-4 text-[#F2F2F0]" />
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#17181B] border border-[#2B2C30] text-[#B0B0B4]">
                     {item.tag}
                   </span>
                 </div>
@@ -309,7 +310,7 @@ export default function HomePage() {
                     {item.name}
                   </h3>
                   <p className="text-[11px] text-[#19D5E5] font-mono">{item.role}</p>
-                  <p className="text-xs text-[#A5A6AA] mt-2.5 leading-relaxed">
+                  <p className="text-xs text-[#B0B0B4] mt-2.5 leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -320,7 +321,7 @@ export default function HomePage() {
                 className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] hover:border-[#3F4046] py-2 px-3 rounded-lg text-xs font-medium transition"
               >
                 <span>{item.action}</span>
-                <span className="text-xs font-mono">&rarr;</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#B0B0B4]" />
               </Link>
             </div>
           ))}
@@ -333,14 +334,14 @@ export default function HomePage() {
       <section className="space-y-6 max-w-7xl mx-auto">
         <div className="border-b border-[#2B2C30] pb-4 flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-mono font-semibold text-[#72747A] uppercase tracking-wider">
+            <span className="text-[10px] font-mono font-semibold text-[#85858B] uppercase tracking-wider">
               Architecture Modules
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#F2F2F0] mt-1 font-editorial-sans">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#F2F2F0] mt-1">
               End-to-End Threat Intelligence Engine
             </h2>
           </div>
-          <span className="text-[10px] font-mono text-[#72747A] hidden sm:inline">
+          <span className="text-[10px] font-mono text-[#85858B] hidden sm:inline">
             CORE-INFRASTRUCTURE &bull; V1.0
           </span>
         </div>
@@ -351,17 +352,17 @@ export default function HomePage() {
               key={i}
               className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-5 transition-all duration-150 flex items-start gap-4"
             >
-              <span className="text-[10px] font-mono text-[#72747A] bg-[#17181B] border border-[#2B2C30] px-2 py-1 rounded shrink-0">
+              <span className="text-[10px] font-mono text-[#85858B] bg-[#17181B] border border-[#2B2C30] px-2 py-1 rounded shrink-0">
                 {feat.code}
               </span>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs sm:text-sm font-semibold text-[#F2F2F0]">{feat.title}</h3>
-                  <span className="text-[9px] font-mono text-[#A5A6AA] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
+                  <span className="text-[10px] font-mono text-[#B0B0B4] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
                     {feat.category}
                   </span>
                 </div>
-                <p className="text-xs text-[#A5A6AA] leading-relaxed">{feat.desc}</p>
+                <p className="text-xs text-[#B0B0B4] leading-relaxed">{feat.desc}</p>
               </div>
             </div>
           ))}

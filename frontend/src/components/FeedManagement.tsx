@@ -15,6 +15,19 @@ import {
   safeFetchTaxiiCollections,
   safeCreateTaxiiFeed,
 } from "@/lib/api";
+import {
+  Radio,
+  Webhook,
+  Plus,
+  RotateCw,
+  Zap,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  Shield,
+  Settings,
+  Globe,
+} from "lucide-react";
 
 export interface FeedItem {
   id: string;
@@ -340,7 +353,7 @@ export function FeedManagement() {
               onClick={() => setShowTaxiiModal(true)}
               className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-[#F2F2F0] hover:bg-white text-[#090A0C] transition flex items-center gap-1.5 cursor-pointer"
             >
-              <span>+</span> Connect TAXII 2.1 Server
+              <Plus className="w-3.5 h-3.5" /> Connect TAXII 2.1 Server
             </button>
           )}
 
@@ -350,9 +363,10 @@ export function FeedManagement() {
               loadWebhooks();
             }}
             disabled={refreshing || loadingWebhooks}
-            className="px-3.5 py-2 text-xs font-medium rounded-lg bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] transition cursor-pointer"
+            className="px-3.5 py-2 text-xs font-medium rounded-lg bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] transition cursor-pointer flex items-center gap-1.5"
           >
-            {refreshing || loadingWebhooks ? "Refreshing..." : "↻ Refresh"}
+            <RotateCw className={`w-3.5 h-3.5 ${refreshing || loadingWebhooks ? "animate-spin" : ""}`} />
+            <span>{refreshing || loadingWebhooks ? "Refreshing..." : "Refresh"}</span>
           </button>
 
           {activeTab === "feeds" && isPrivileged && (
@@ -363,11 +377,11 @@ export function FeedManagement() {
             >
               {fetchInProgress === "all" ? (
                 <>
-                  <span className="animate-spin text-sm">⟳</span> Fetching All...
+                  <RotateCw className="w-3.5 h-3.5 animate-spin" /> Fetching All...
                 </>
               ) : (
                 <>
-                  <span>⚡</span> Fetch All Feeds
+                  <Zap className="w-3.5 h-3.5" /> Fetch All Feeds
                 </>
               )}
             </button>
@@ -385,7 +399,7 @@ export function FeedManagement() {
               : "text-[#72747A] hover:text-[#F2F2F0] hover:bg-[#111214]"
           }`}
         >
-          <span>🌐</span> Threat Intelligence Feeds &amp; TAXII 2.1
+          <Radio className="w-4 h-4 text-[#19D5E5]" /> Threat Intelligence Feeds &amp; TAXII 2.1
           <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#090A0C] text-[#A5A6AA] font-mono border border-[#2B2C30]">
             {feeds.length}
           </span>
@@ -399,7 +413,7 @@ export function FeedManagement() {
               : "text-[#72747A] hover:text-[#F2F2F0] hover:bg-[#111214]"
           }`}
         >
-          <span>📥</span> Inbound SIEM &amp; EDR Webhook Receivers (FR-29)
+          <Webhook className="w-4 h-4 text-[#19D5E5]" /> Inbound SIEM &amp; EDR Webhook Receivers (FR-29)
           <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#090A0C] text-[#A5A6AA] font-mono border border-[#2B2C30]">
             {webhooks.length}
           </span>
@@ -409,14 +423,14 @@ export function FeedManagement() {
       {/* Messages */}
       {errorMsg && (
         <div className="p-3 bg-[#17181B] border border-red-900/60 rounded-lg text-xs text-red-300 flex items-center justify-between">
-          <span>⚠️ {errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white">✕</button>
+          <span className="flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-red-400 shrink-0" /> {errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white" aria-label="Dismiss error"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
       {successMsg && (
         <div className="p-3 bg-[#17181B] border border-emerald-900/60 rounded-lg text-xs text-emerald-300 flex items-center justify-between">
-          <span>✓ {successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white">✕</button>
+          <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> {successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white" aria-label="Dismiss message"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
@@ -589,11 +603,11 @@ export function FeedManagement() {
                         >
                           {isFetchingThis ? (
                             <>
-                              <span className="animate-spin text-xs">⟳</span> Polling...
+                              <RotateCw className="w-3.5 h-3.5 animate-spin" /> Polling...
                             </>
                           ) : (
                             <>
-                              <span>⚡</span> Fetch Now
+                              <Zap className="w-3.5 h-3.5" /> Fetch Now
                             </>
                           )}
                         </button>
@@ -612,7 +626,7 @@ export function FeedManagement() {
         <>
           <div className="bg-[#111214] p-4 rounded-xl border border-[#2B2C30] text-xs text-[#A5A6AA] space-y-1">
             <div className="font-semibold text-[#F2F2F0] flex items-center gap-2 font-mono">
-              <span>🔒</span> Canonical Webhook Ingestion Engine
+              <Shield className="w-4 h-4 text-[#19D5E5]" /> Canonical Webhook Ingestion Engine
             </div>
             <p className="text-[#A5A6AA]">
               Inbound security events delivered via HTTP POST to{" "}
@@ -745,7 +759,7 @@ export function FeedManagement() {
               <h3 className="text-base font-bold text-[#F2F2F0]">
                 Edit Feed Configuration: <span className="text-[#19D5E5] font-mono">{editingFeed.name}</span>
               </h3>
-              <button onClick={() => setEditingFeed(null)} className="text-[#72747A] hover:text-[#F2F2F0] cursor-pointer">✕</button>
+              <button onClick={() => setEditingFeed(null)} className="text-[#72747A] hover:text-[#F2F2F0] cursor-pointer" aria-label="Close dialog"><X className="w-4 h-4" /></button>
             </div>
 
             <form onSubmit={handleSaveConfig} className="space-y-4 text-xs">
@@ -813,9 +827,9 @@ export function FeedManagement() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-xl w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
               <h3 className="text-base font-bold text-[#F2F2F0] flex items-center gap-2">
-                <span>🌐</span> Connect TAXII 2.1 Server (FR-04)
+                <Globe className="w-4 h-4 text-[#19D5E5]" /> Connect TAXII 2.1 Server (FR-04)
               </h3>
-              <button onClick={() => setShowTaxiiModal(false)} className="text-[#72747A] hover:text-[#F2F2F0] cursor-pointer">✕</button>
+              <button onClick={() => setShowTaxiiModal(false)} className="text-[#72747A] hover:text-[#F2F2F0] cursor-pointer" aria-label="Close dialog"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="space-y-4 text-xs">
