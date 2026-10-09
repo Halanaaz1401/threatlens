@@ -278,7 +278,7 @@ export default function AnalystDashboardPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto p-6 min-h-screen">
+    <div className="space-y-6 w-full min-h-screen">
       {/* Toast Alert */}
       {liveToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#0f172a] border border-red-500/80 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-bounce">

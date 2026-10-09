@@ -268,7 +268,7 @@ export default function CasesDashboardPage() {
       <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[#080d19] border border-slate-800 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-[#080d19] border border-slate-800 p-1 rounded-xl overflow-x-auto max-w-full">
             {["ALL", "OPEN", "IN_PROGRESS", "CONTAINED", "RESOLVED", "CLOSED"].map((st) => (
               <button
                 key={st}

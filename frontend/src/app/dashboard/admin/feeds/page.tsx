@@ -5,8 +5,8 @@ import { FeedManagement } from "@/components/FeedManagement";
 
 export default function AdminFeedsPage() {
   return (
-    <main className="p-6 max-w-[1600px] mx-auto min-h-screen">
+    <div className="w-full">
       <FeedManagement />
-    </main>
+    </div>
   );
 }

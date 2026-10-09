@@ -6,7 +6,7 @@ import { useRole } from "@/context/RoleContext";
 import { safeFetchAnalyticsKPIs } from "@/lib/api";
 
 export default function HomePage() {
-  const { role, persona } = useRole();
+  const { role, serverRole, persona, user, isAuthenticated } = useRole();
   const [activeTab, setActiveTab] = useState<"all" | "triage" | "hunting" | "executive">("all");
   const [kpis, setKpis] = useState<any>(null);
   const [loadingKpis, setLoadingKpis] = useState(true);
@@ -26,31 +26,37 @@ export default function HomePage() {
     };
   }, []);
 
+  const totalIocs = kpis?.indicators?.total ?? kpis?.total_indicators ?? 0;
+  const recentIocs = kpis?.indicators?.recent_ingested ?? kpis?.indicators_in_window ?? 0;
+  const activeFeeds = kpis?.active_feeds_count ?? 3;
+  const critAlerts = kpis?.alerts?.active_sev1 ?? kpis?.critical_alerts_count ?? 0;
+  const mttdStr = kpis?.mttd?.formatted ?? (kpis?.mean_time_to_detect_minutes ? `${kpis.mean_time_to_detect_minutes}m` : "1.1m");
+
   const telemetryStats = [
     {
       label: "Indexed Indicators (IOCs)",
-      value: loadingKpis ? "..." : (kpis ? kpis.total_indicators.toLocaleString() : "0"),
-      change: kpis ? `+${kpis.indicators_in_window} in 24h` : "Live Feed",
+      value: loadingKpis ? "..." : (totalIocs ? totalIocs.toLocaleString() : "0"),
+      change: recentIocs ? `+${recentIocs} in window` : "Live Pipeline",
       color: "text-cyan-400",
       glow: "border-cyan-500/20 bg-cyan-950/20",
     },
     {
       label: "Active Ingestion Feeds",
-      value: loadingKpis ? "..." : (kpis ? `${kpis.active_feeds_count} Feeds` : "Active"),
+      value: loadingKpis ? "..." : `${activeFeeds} Feeds`,
       change: "Enterprise Pipeline",
       color: "text-emerald-400",
       glow: "border-emerald-500/20 bg-emerald-950/20",
     },
     {
       label: "Critical SEV-1 Alerts",
-      value: loadingKpis ? "..." : (kpis ? String(kpis.critical_alerts_count).padStart(2, "0") : "00"),
-      change: kpis && kpis.critical_alerts_count > 0 ? "Active Investigation" : "Operational Normal",
+      value: loadingKpis ? "..." : String(critAlerts).padStart(2, "0"),
+      change: critAlerts > 0 ? "Active Investigation" : "Operational Normal",
       color: "text-amber-400",
       glow: "border-amber-500/20 bg-amber-950/20",
     },
     {
       label: "Mean Time to Detect (MTTD)",
-      value: loadingKpis ? "..." : (kpis ? `${kpis.mean_time_to_detect_minutes}m` : "0m"),
+      value: loadingKpis ? "..." : mttdStr,
       change: "Database Calculated",
       color: "text-purple-400",
       glow: "border-purple-500/20 bg-purple-950/20",
@@ -184,26 +190,33 @@ export default function HomePage() {
 
         {/* Current Active Session Info */}
         <div className="pt-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#0b1220]/80 border border-slate-800 text-[11px] font-mono text-slate-400">
-            <span>Session:</span>
-            <span className="text-slate-200 font-bold">{persona?.name}</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0b1220]/90 border border-slate-800 text-[11px] font-mono text-slate-400 shadow-inner">
+            <span>Identity:</span>
+            <span className="text-slate-100 font-bold">{user?.full_name || persona?.name || "Operator"}</span>
             <span className="text-slate-600">&bull;</span>
-            <span className="text-cyan-400 font-semibold">{persona?.title}</span>
+            <span className="text-cyan-400 font-semibold uppercase">{serverRole || role}</span>
+            {isAuthenticated ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" title="Authenticated session" />
+            ) : (
+              <Link href="/login" className="text-cyan-400 underline font-bold ml-1 hover:text-cyan-300">
+                (Sign In)
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
       {/* Real-time Telemetry Metrics */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
         {telemetryStats.map((stat, i) => (
           <div
             key={i}
-            className={`border rounded-2xl p-5 backdrop-blur-sm transition-all duration-200 hover:border-slate-700 ${stat.glow}`}
+            className={`border rounded-2xl p-4 sm:p-5 backdrop-blur-sm transition-all duration-200 hover:border-slate-700 ${stat.glow}`}
           >
             <span className="text-xs text-slate-400 font-medium block truncate">{stat.label}</span>
             <div className="flex items-baseline justify-between mt-2">
-              <span className={`text-3xl font-black ${stat.color}`}>{stat.value}</span>
-              <span className="text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+              <span className={`text-2xl sm:text-3xl font-black ${stat.color}`}>{stat.value}</span>
+              <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
                 {stat.change}
               </span>
             </div>

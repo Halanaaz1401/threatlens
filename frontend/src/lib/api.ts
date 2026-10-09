@@ -554,3 +554,48 @@ export async function safeUpdateDashboardLayout(
   return await apiPost(`/api/v1/dashboards/${dashboardId}/layout`, { items });
 }
 
+export async function apiLogin(credentials: { email?: string; username?: string; password: string }): Promise<{ access_token: string; role: string; token_type: string } | null> {
+  const headers = { "Content-Type": "application/json" };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}/api/v1/auth/login`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(credentials),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try next host
+    }
+  }
+  return null;
+}
+
+export async function apiLogout(): Promise<boolean> {
+  const headers = { ...getAuthHeaders() };
+  for (const base of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${base}/api/v1/auth/logout`, {
+        method: "POST",
+        headers,
+      });
+      if (res.ok) {
+        return true;
+      }
+    } catch {
+      // try next host
+    }
+  }
+  return false;
+}
+
+export async function apiGetCurrentUser(): Promise<any | null> {
+  return await apiGet("/api/v1/auth/me");
+}
+
+export async function apiListUsers(): Promise<any[] | null> {
+  return await apiGet("/api/v1/auth/users");
+}
+

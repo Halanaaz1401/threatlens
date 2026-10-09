@@ -519,7 +519,7 @@ export default function DashboardBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050814] text-slate-100 p-6 space-y-6">
+    <div className="min-h-screen text-slate-100 space-y-6 w-full">
       {/* Notifications */}
       {errorMsg && (
         <div className="bg-red-950/80 border border-red-500/80 text-red-200 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
