@@ -120,7 +120,7 @@ export default function IncidentResponsePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Forensic Timeline */}
         <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
-          <h2 className="text-xs font-mono uppercase tracking-wider text-[#B0B0B4] flex items-center gap-2 font-semibold">
+          <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-[#19D5E5]" />
             <span>Chronological Forensic Timeline</span>
           </h2>
@@ -169,11 +169,11 @@ export default function IncidentResponsePage() {
 
         {/* Right Column: Containment Checklist */}
         <div className="lg:col-span-5 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
-          <h2 className="text-xs font-mono uppercase tracking-wider text-[#B0B0B4] flex items-center gap-2 font-semibold">
+          <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
             <ListChecks className="w-3.5 h-3.5 text-[#19D5E5]" />
             <span>Containment Checklist</span>
           </h2>
-          <div className="space-y-2.5 text-xs font-mono">
+          <div className="space-y-2.5 text-xs">
             <label className="flex items-center gap-3 p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] cursor-pointer hover:border-[#42434A] transition">
               <input type="checkbox" defaultChecked className="rounded accent-[#19D5E5]" />
               <span className="text-[#F2F2F0]">Isolate affected internal host at EDR layer</span>

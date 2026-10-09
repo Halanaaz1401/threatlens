@@ -342,7 +342,7 @@ function ThreatHuntingContent() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+                <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                   <Network className="w-4 h-4 text-[#19D5E5]" /> Bounded Indicator Relationship Graph
                 </h2>
                 <p className="text-xs text-[#A5A6AA]">
@@ -376,7 +376,7 @@ function ThreatHuntingContent() {
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+                <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                   <Target className="w-4 h-4 text-[#19D5E5]" /> MITRE ATT&amp;CK Technique Heatmap
                 </h2>
                 <p className="text-xs text-[#A5A6AA]">
@@ -425,8 +425,8 @@ function ThreatHuntingContent() {
 
             {activeTechnique && (
               <div className="pt-2">
-                <h3 className="text-xs font-bold text-[#F2F2F0] pb-2 font-mono">
-                  Target IOCs mapped to {activeTechnique} ({mappedIndicators.length} matching):
+                <h3 className="text-xs font-semibold text-[#F2F2F0] pb-2">
+                  Target IOCs mapped to <span className="font-mono text-[#19D5E5]">{activeTechnique}</span> <span className="font-mono text-[#85858B]">({mappedIndicators.length} matching)</span>:
                 </h3>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                   {mappedIndicators.length === 0 ? (
@@ -456,7 +456,7 @@ function ThreatHuntingContent() {
           {/* Node Inspector Card */}
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+              <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                 <Search className="w-4 h-4 text-[#19D5E5]" /> Target Node Inspector
               </h2>
               {selectedNode && (
@@ -577,7 +577,7 @@ function ThreatHuntingContent() {
           {/* Quick Hunting Query Library */}
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div>
-              <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+              <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                 <Zap className="w-4 h-4 text-[#19D5E5]" /> Pre-Packaged Hunting Queries
               </h2>
               <p className="text-xs text-[#72747A]">Adversary search presets</p>

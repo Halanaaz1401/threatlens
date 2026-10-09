@@ -256,7 +256,7 @@ export function DetectionRulesManager() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+            <h2 className="text-lg font-bold text-[#F2F2F0] flex items-center gap-2">
               <Settings className="w-4 h-4 text-[#19D5E5]" /> Configurable Detection Rules &amp; Alert Routing
             </h2>
             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
@@ -320,8 +320,8 @@ export function DetectionRulesManager() {
         {/* Left Column: Rules Table */}
         <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
-              <Shield className="w-4 h-4 text-[#19D5E5]" /> Active Rules Inventory ({rules.length})
+            <h3 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
+              <Shield className="w-4 h-4 text-[#19D5E5]" /> Active Rules Inventory <span className="font-mono text-xs text-[#85858B]">({rules.length})</span>
             </h3>
             <button
               onClick={loadRules}
@@ -434,7 +434,7 @@ export function DetectionRulesManager() {
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
+              <h3 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                 <Search className="w-4 h-4 text-[#19D5E5]" /> Rule Inspection &amp; Logic
               </h3>
               {selectedRule && (

@@ -318,7 +318,7 @@ export default function AnalystDashboardPage() {
               {persona.name} ({persona.title})
             </span>
           </div>
-          <p className="text-xs text-[#85858B] font-mono mt-0.5">
+          <p className="text-xs text-[#85858B] mt-0.5">
             Real-time live WebSocket stream active &bull; Lifecycle, TTL expiration, and feed provenance monitoring.
           </p>
         </div>
@@ -421,8 +421,8 @@ export default function AnalystDashboardPage() {
           {/* Left Column: Triage Table */}
           <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xs font-mono uppercase tracking-wider text-[#A5A6AA] flex items-center gap-2">
-                <span>Ingested Indicators ({filteredIOCs.length})</span>
+              <h2 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
+                <span>Ingested Indicators <span className="font-mono text-xs text-[#85858B]">({filteredIOCs.length})</span></span>
               </h2>
               <input
                 type="text"
@@ -530,7 +530,7 @@ export default function AnalystDashboardPage() {
           <div className="lg:col-span-5 space-y-4">
             <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-mono uppercase tracking-wider text-[#A5A6AA] flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[#F2F2F0] flex items-center gap-2">
                   <span>IOC Lifecycle &amp; Intelligence</span>
                 </h3>
                 <span className="text-[10px] font-mono text-[#72747A] uppercase bg-[#17181B] px-2 py-0.5 rounded border border-[#2B2C30]">

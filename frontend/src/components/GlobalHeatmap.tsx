@@ -127,7 +127,7 @@ export function GlobalHeatmap() {
           <span className="w-6 h-6 rounded-lg bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[#19D5E5]">
             <Radio className="w-3.5 h-3.5" />
           </span>
-          <h2 className="text-sm font-semibold text-[#F2F2F0] font-mono">
+          <h2 className="text-sm font-semibold text-[#F2F2F0]">
             Global Threat Heatmap &amp; Origin Telemetry
           </h2>
         </div>

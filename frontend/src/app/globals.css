@@ -1,7 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
+/* =========================================================================
+   SELF-HOSTED SPACE MONO @FONT-FACE (SIL OPEN FONT LICENSE)
+   Directly served from /fonts/ for zero CDN latency and guaranteed rendering
+   ========================================================================= */
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-mono-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-mono-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Mono';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-mono-700-italic.woff2') format('woff2');
+}
+
+/* TAILWIND V4 THEME CONFIGURATION */
+@theme {
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 :root {
+  /* CENTRALIZED TYPOGRAPHY TOKENS */
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
   /* THEME TOKENS — MONOCHROME PRECISION & SEMANTIC DISTINCTION */
   --bg-primary: #090A0C;
   --bg-secondary: #111214;
@@ -35,26 +80,32 @@ html {
   scroll-behavior: smooth;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
 body {
   color: var(--text-primary);
   background-color: var(--bg-primary);
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Ensure form elements and controls inherit Segoe UI */
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+}
+
 /* TYPOGRAPHY UTILITIES — SEGOE UI AND SPACE MONO */
 .font-sans {
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .font-mono,
 .font-mono-tech {
-  font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0.02em;
 }
 

@@ -46,7 +46,7 @@ export function AttackHeatmap() {
     <div className="rounded-xl border border-[#2B2C30] bg-[#111214] p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-[#F2F2F0] font-mono">Global Threat Geo-Density</h3>
+          <h3 className="text-sm font-semibold text-[#F2F2F0]">Global Threat Geo-Density</h3>
           <p className="text-xs text-[#A5A6AA]">Database-derived IoC origin density &amp; targeted geographies</p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded bg-[#17181B] px-2.5 py-1 text-xs font-mono font-medium text-[#19D5E5] border border-[#2B2C30]">

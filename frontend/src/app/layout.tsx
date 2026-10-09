@@ -21,6 +21,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
+      <head>
+        <link
+          rel="preload"
+          href="/fonts/space-mono-400.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/space-mono-700.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="bg-[#090A0C] text-[#F2F2F0] min-h-screen flex flex-col antialiased selection:bg-[#19D5E5]/20 selection:text-[#19D5E5]">
         <RoleProvider>
           <Navbar />
