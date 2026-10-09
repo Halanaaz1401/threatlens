@@ -1,8 +1,16 @@
 import { getAuthHeaders } from "./auth";
 
 export function getApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+  let url = process.env.NEXT_PUBLIC_API_URL;
+  if (url) {
+    url = url.trim();
+    const mdMatch = url.match(/\]\((https?:\/\/[^\s)]+)\)/);
+    if (mdMatch) {
+      url = mdMatch[1];
+    } else if (url.includes("](")) {
+      url = url.split("](")[0].replace(/^\[/, "");
+    }
+    return url.replace(/\/+$/, "");
   }
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
@@ -14,8 +22,24 @@ export function getApiBaseUrl(): string {
 }
 
 export function getWsBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_WS_URL) {
-    return process.env.NEXT_PUBLIC_WS_URL;
+  let url = process.env.NEXT_PUBLIC_WS_URL;
+  if (url) {
+    url = url.trim();
+    const mdMatch = url.match(/\]\((https?:\/\/[^\s)]+|wss?:\/\/[^\s)]+)\)/);
+    if (mdMatch) {
+      url = mdMatch[1];
+    } else if (url.includes("](")) {
+      url = url.split("](")[0].replace(/^\[/, "");
+    }
+    if (url.startsWith("http://")) {
+      url = url.replace(/^http:\/\//, "ws://");
+    } else if (url.startsWith("https://")) {
+      url = url.replace(/^https:\/\//, "wss://");
+    }
+    if (!url.includes("/ws/")) {
+      url = `${url.replace(/\/+$/, "")}/api/v1/ws/alerts`;
+    }
+    return url;
   }
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
@@ -28,7 +52,7 @@ export function getWsBaseUrl(): string {
 }
 
 const API_BASE_URLS = [
-  process.env.NEXT_PUBLIC_API_URL,
+  getApiBaseUrl(),
   typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
     ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ""}`
     : null,
@@ -98,7 +122,7 @@ export async function safeFetchIndicatorEnrichment(indicatorId: string) {
   return await apiGet(`/api/v1/indicators/${indicatorId}/enrichment`);
 }
 
-async function apiPost(path: string, body: any) {
+async function apiPost(path: string, body: any = {}) {
   const headers = {
     ...getAuthHeaders(),
     "Content-Type": "application/json",
@@ -146,7 +170,7 @@ export async function safeCreateRelationship(payload: {
   return await apiPost("/api/v1/hunting/relationships", payload);
 }
 
-async function apiPut(path: string, body: any) {
+async function apiPut(path: string, body: any = {}) {
   const headers = {
     ...getAuthHeaders(),
     "Content-Type": "application/json",
@@ -183,7 +207,10 @@ async function apiDelete(path: string) {
       // try next host
     }
   }
-async function apiPatch(path: string, body: any) {
+  return null;
+}
+
+async function apiPatch(path: string, body: any = {}) {
   const headers = {
     ...getAuthHeaders(),
     "Content-Type": "application/json",

@@ -81,7 +81,39 @@ export default function DashboardBuilderPage() {
   const [newWidgetHeight, setNewWidgetHeight] = useState(4);
   const [widgetSubmitting, setWidgetSubmitting] = useState(false);
 
-  // 1. Initial Load
+  // 1. Load Single Widget Data
+  const loadSingleWidgetData = async (dashboardId: string, widgetId: string, timeRange?: string) => {
+    setWidgetLoadingMap((prev) => ({ ...prev, [widgetId]: true }));
+    try {
+      const res = await safeFetchWidgetData(dashboardId, widgetId, timeRange);
+      if (res && res.data) {
+        setWidgetDataMap((prev) => ({ ...prev, [widgetId]: res.data }));
+      }
+    } catch {
+      // Keep existing data or empty
+    } finally {
+      setWidgetLoadingMap((prev) => ({ ...prev, [widgetId]: false }));
+    }
+  };
+
+  // 2. Select Dashboard & Load Widgets
+  const selectDashboard = async (dashboardId: string) => {
+    try {
+      setErrorMsg(null);
+      const detailed = await safeFetchDashboard(dashboardId);
+      setActiveDashboard(detailed);
+      // Fetch telemetry for all widgets
+      if (detailed?.widgets?.length > 0) {
+        detailed.widgets.forEach((w: WidgetDef) => {
+          loadSingleWidgetData(detailed.id, w.id, w.time_range);
+        });
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to load dashboard details");
+    }
+  };
+
+  // 3. Initial Load
   const loadDashboards = useCallback(async () => {
     try {
       setLoading(true);
@@ -112,38 +144,6 @@ export default function DashboardBuilderPage() {
   useEffect(() => {
     loadDashboards();
   }, [loadDashboards]);
-
-  // 2. Select Dashboard & Load Widgets
-  const selectDashboard = async (dashboardId: string) => {
-    try {
-      setErrorMsg(null);
-      const detailed = await safeFetchDashboard(dashboardId);
-      setActiveDashboard(detailed);
-      // Fetch telemetry for all widgets
-      if (detailed?.widgets?.length > 0) {
-        detailed.widgets.forEach((w: WidgetDef) => {
-          loadSingleWidgetData(detailed.id, w.id, w.time_range);
-        });
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to load dashboard details");
-    }
-  };
-
-  // 3. Load Single Widget Data
-  const loadSingleWidgetData = async (dashboardId: string, widgetId: string, timeRange?: string) => {
-    setWidgetLoadingMap((prev) => ({ ...prev, [widgetId]: true }));
-    try {
-      const res = await safeFetchWidgetData(dashboardId, widgetId, timeRange);
-      if (res && res.data) {
-        setWidgetDataMap((prev) => ({ ...prev, [widgetId]: res.data }));
-      }
-    } catch {
-      // Keep existing data or empty
-    } finally {
-      setWidgetLoadingMap((prev) => ({ ...prev, [widgetId]: false }));
-    }
-  };
 
   // 4. Create Dashboard Handler
   const handleCreateDashboard = async (e: React.FormEvent) => {

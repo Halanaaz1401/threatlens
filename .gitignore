@@ -41,6 +41,9 @@ yarn-error.log*
 # Database & SQLite files
 *.sqlite3
 *.db
+reports_storage/
+backend/reports_storage/
+browser_e2e_results.json
 
 # OS & Editor files
 .DS_Store

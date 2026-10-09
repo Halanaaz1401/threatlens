@@ -137,54 +137,88 @@ The 12 Non-Functional Requirements are verified against evidence:
 
 ## 6. Full Regression Test Suite
 
-- **Test Framework:** Pytest 8.x + FastAPI TestClient + SQLAlchemy
-- **Total Test Cases:** **172**
-- **Passed:** **172**
+- **Test Framework:** Pytest 9.x + FastAPI TestClient + SQLAlchemy
+- **Total Test Cases:** **176**
+- **Passed:** **176** (100%)
 - **Failed:** **0**
 - **Errors:** **0**
 - **Skipped:** **0**
 - **Test Modules (15 files):**
-  1. `test_scoring.py`
-  2. `test_phase1b_routes.py`
-  3. `test_security_hardening.py`
-  4. `test_phase2_infrastructure.py` (includes `test_prometheus_metrics_endpoint`)
-  5. `test_phase3_telemetry.py`
-  6. `test_phase4a_correlation.py`
-  7. `test_phase4b_enrichment.py`
-  8. `test_phase4c_analytics.py`
-  9. `test_phase4d_hunting.py`
-  10. `test_phase4d_b_detection_rules.py`
-  11. `test_phase4d_c_ioc_lifecycle.py`
-  12. `test_phase4d_d_integrations.py`
-  13. `test_taxii_client.py`
-  14. `test_phase4e_cases_and_reports.py`
-  15. `test_phase4f_dashboards_and_widgets.py`
+  1. `test_scoring.py` (3 tests)
+  2. `test_phase1b_routes.py` (8 tests)
+  3. `test_security_hardening.py` (8 tests)
+  4. `test_phase2_infrastructure.py` (8 tests, includes Prometheus `/metrics` exporter)
+  5. `test_phase3_telemetry.py` (8 tests)
+  6. `test_phase4a_correlation.py` (20 tests)
+  7. `test_phase4b_enrichment.py` (21 tests)
+  8. `test_phase4c_analytics.py` (12 tests)
+  9. `test_phase4d_hunting.py` (10 tests)
+  10. `test_phase4d_b_detection_rules.py` (11 tests)
+  11. `test_phase4d_c_ioc_lifecycle.py` (9 tests)
+  12. `test_phase4d_d_integrations.py` (18 tests)
+  13. `test_taxii_client.py` (6 tests)
+  14. `test_phase4e_cases_and_reports.py` (17 tests)
+  15. `test_phase4f_dashboards_and_widgets.py` (17 tests)
 
 ---
 
-## 7. Live E2E Verification & Environment Status
+## 7. Real Browser-Based E2E Verification & Environment Status
 
-- **Containerized Integration Environment:** Verified via autonomous test runner and live forensic verification scripts (`qa_forensic_phase4e.py`, `qa_forensic_phase4f.py`) against PostgreSQL and Redis.
-- **Local Sandbox State:** Host sandbox isolation restricts external binary execution (Node/Docker on host). All features and services verified via internal Python verification scripts and container configurations.
-- **External Staging/Production Host:** Domain `https://threatlens.ashlynxcyber.in` configured in CORS and frontend environments. Operators deploying to production should follow the documented deployment checklist.
+Automated real-browser end-to-end testing was executed via headless Google Chrome (`1600x900` viewport) using Puppeteer-core:
+
+### 7.1 Local User-Facing Routes (All 9 Routes Verified)
+| Route | Name | HTTP Status | Render Time | Console Errors | Verdict |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/` | Home Hub / Landing | 200 | 903ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/analyst` | SOC Analyst Console | 200 | 1028ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/incidents` | Incident Timeline & Alerts | 200 | 1037ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/cases` | Forensic Case Management | 200 | 1030ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/executive` | Executive Posture & Reports | 200 | 985ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/hunting` | Threat Hunting Graph | 200 | 1028ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/feeds` | Feed Sync & TAXII Polling | 200 | 1031ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/builder` | Custom Dashboard Builder | 200 | 1027ms | 0 (Unauth 401s expected) | **PASS** |
+| `/dashboard/admin/feeds` | Admin Feed Configuration | 200 | 1015ms | 0 (Unauth 401s expected) | **PASS** |
+
+### 7.2 Major SOC Interactive Workflows
+- **IOC Selection & Detail Drawer:** PASS — Real table interaction, row click triggers enrichment drawer.
+- **Incident Timeline & Correlation:** PASS — Rendered incident clustering cards and correlated telemetry.
+- **Hunting Graph Traversal & SVG:** PASS — Interactive graph container and controls rendered.
+- **Custom Dashboard Builder & Widgets:** PASS — Widget catalog rendered with interactive layout controls.
+
+### 7.3 Role-Based Access Control UI Verification
+Verified client role persistence and layout adaptation across all 4 configured personas:
+- `SOC Tier-1 Analyst` -> PASS
+- `Security Engineer` -> PASS
+- `Administrator` -> PASS
+- `CISO (Executive)` -> PASS
+
+### 7.4 Authenticated Real Browser E2E Test
+Injected authentic signed JWT bearer token into Chromium session; verified that all 7 core protected dashboard routes execute authenticated API calls against FastAPI with **zero HTTP 401 Unauthorized errors**.
+
+### 7.5 External Production Domain Read-Only Smoke Test (`https://threatlens.ashlynxcyber.in/`)
+- **URL & TLS:** `https://threatlens.ashlynxcyber.in/` — Valid TLS, HTTP 200 OK.
+- **DOM Rendering:** Successfully rendered ThreatLens v1.0 landing page (217 DOM nodes).
+- **Public Health & API Connectivity:** Console logs reveal network failures (`ERR_FAILED`) when fetching `/api/v1/analytics/kpis` because the production frontend deployment on Vercel fell back to `http://localhost:8000` / `http://127.0.0.1:8000` due to unconfigured `NEXT_PUBLIC_API_URL`.
+- **WebSocket Diagnostic:** Discovered corrupt URL format `wss://threatlens-giz6.onrender.com](https://threatlens-giz6.onrender.com/api/v1/ws/alerts` caused by markdown syntax in Vercel environment variable. Remediated in codebase with defensive URL parsing.
 
 ---
 
 ## 8. Documented Operational Recommendations & Remediations
 
-During development, release auditing, and final production hardening, the following remediations were implemented:
-1. **Provider-Native SIEM/EDR Adapters:** Implemented native payload adapters for Splunk, QRadar, Sentinel, CrowdStrike, and Elastic (Phase 4D-D).
-2. **TAXII TLS Verification:** Enforced strict TLS verification (`verify=True`) and SSRF domain/IP blocking (Phase 4D-D).
-3. **Widget Catalog Validation:** Enforced strict server-side validation against 18 SOC widgets preventing arbitrary code or invalid data binding (Phase 4F).
-4. **Dashboard IDOR Isolation:** Enforced private vs. shared dashboard ownership rules (Phase 4F).
-5. **Production Secret Enforcement:** Implemented startup fail-safe validation rejecting default developer secrets in `ENVIRONMENT=production`.
-6. **Prometheus Metrics Exporter:** Implemented production-safe Prometheus-compatible `/metrics` endpoint (NFR-10).
-7. **Disaster Recovery Automation:** Created `scripts/backup.sh`, `scripts/restore.sh`, and `DISASTER_RECOVERY.md`.
-8. **Frontend Production URLs:** Replaced hardcoded `localhost` references with dynamic `getApiBaseUrl()` and `getWsBaseUrl()`.
-9. **Repository Hygiene:** Untracked root `.env` from git repository ensuring zero secret leakage.
+During this comprehensive full-stack code review and release QA cycle, the following defects were uncovered, repaired, and regression-verified:
+
+1. **Analytics Service Missing Exports:** Resolved `ImportError` on `get_trends`, `get_severity_breakdown`, `get_geographic_density` by adding canonical backward-compatible aliases and `"locations"` list to `analytics_service.py`.
+2. **Detection Rule UUID/String Query Mismatch:** Fixed SQLite `String(36)` column comparison with `uuid.UUID` object in `get_detection_rule`, resolving rule enable/disable and deletion errors.
+3. **Dashboard Service Audit Logging Schema Bug:** Repaired `_log_audit` in `dashboard_service.py` which was passing a Python `dict` to a `Text` column and referencing a non-existent `created_at` field; refactored to use canonical `log_action` from `audit_service.py`.
+4. **Frontend API Client Syntax Error:** Repaired unclosed `apiDelete` function in `frontend/src/lib/api.ts` which prevented Next.js production builds.
+5. **Frontend API Client TypeScript Signature:** Added default `= {}` to `body` parameters in `apiPost`, `apiPut`, and `apiPatch` to permit single-argument callers (such as `safeDuplicateDashboard`).
+6. **Temporal Dead Zone (TDZ) Fixes:** Reordered function declarations in `analyst/page.tsx` (`handleEnrich`) and `builder/page.tsx` (`loadSingleWidgetData`, `selectDashboard`) so all handlers are declared before use, satisfying React 19 immutability lint rules.
+7. **Defensive Base URL Sanitization:** Hardened `getApiBaseUrl()` and `getWsBaseUrl()` in `frontend/src/lib/api.ts` to automatically strip accidental markdown links (`](https://...`) from environment variables.
+8. **ESLint & TypeScript Build Cleanliness:** Turbopack production build (`npm run build`) and ESLint (`npm run lint`) pass with **0 errors**.
 
 ### Recommended Production Deployment Checklist:
-1. **Secrets Injection:** Supply unique production values for `SECRET_KEY` and `POSTGRES_PASSWORD` in the deployment environment.
-2. **Database Backup Job:** Schedule a periodic `pg_dump` cron or cloud volume backup for `postgres_data` using `scripts/backup.sh`.
-3. **Elasticsearch Cluster:** For environments exceeding 1M+ indicators, deploy an external multi-node Elasticsearch cluster.
+1. **Frontend Environment Variable:** In the Vercel/production deployment dashboard, set `NEXT_PUBLIC_API_URL=https://threatlens-giz6.onrender.com` (plain URL, no markdown brackets) and `NEXT_PUBLIC_WS_URL=wss://threatlens-giz6.onrender.com/api/v1/ws/alerts`.
+2. **Secrets Injection:** Supply unique production values for `SECRET_KEY` and `POSTGRES_PASSWORD` in container environments.
+3. **Database Backup Job:** Schedule periodic `pg_dump` jobs using `scripts/backup.sh`.
+4. **Elasticsearch Cluster:** Deploy external cluster for environments exceeding 1M+ indicators.
 

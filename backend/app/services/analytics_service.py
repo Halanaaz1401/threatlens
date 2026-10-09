@@ -442,6 +442,7 @@ def get_geographic_analytics(db: Session, limit: int = 10) -> Dict[str, Any]:
             "has_data": False,
             "total_countries_observed": 0,
             "countries": [],
+            "locations": [],
             "message": "No geographic origin telemetry recorded in threat intelligence enrichments"
         }
 
@@ -461,7 +462,8 @@ def get_geographic_analytics(db: Session, limit: int = 10) -> Dict[str, Any]:
         "has_data": True,
         "total_countries_observed": len(countries),
         "total_enriched_locations": total_geo,
-        "countries": countries
+        "countries": countries,
+        "locations": countries
     }
 
 def get_source_analytics(db: Session) -> Dict[str, Any]:
@@ -535,3 +537,9 @@ def _country_code_to_name(code: str) -> str:
         "UA": "Ukraine",
     }
     return lookup.get(code.upper(), code.upper())
+
+
+# Backward-compatible aliases for report service & legacy consumers
+get_trends = get_threat_trends
+get_severity_breakdown = get_severity_distribution
+get_geographic_density = get_geographic_analytics

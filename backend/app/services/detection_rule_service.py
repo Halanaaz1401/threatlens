@@ -586,15 +586,11 @@ def create_detection_rule(
 
 
 def get_detection_rule(db: Session, rule_id: Union[str, uuid.UUID]) -> Optional[DetectionRule]:
-    """Retrieve rule by UUID or rule_code."""
-    rule_str = str(rule_id)
-    try:
-        val_uuid = uuid.UUID(rule_str)
-        return db.query(DetectionRule).filter(
-            or_(DetectionRule.id == val_uuid, DetectionRule.rule_code == rule_str)
-        ).first()
-    except (ValueError, AttributeError):
-        return db.query(DetectionRule).filter(DetectionRule.rule_code == rule_str).first()
+    """Retrieve rule by UUID string, UUID object, or rule_code."""
+    rule_str = str(rule_id).strip()
+    return db.query(DetectionRule).filter(
+        or_(DetectionRule.id == rule_str, DetectionRule.rule_code == rule_str)
+    ).first()
 
 
 def list_detection_rules(

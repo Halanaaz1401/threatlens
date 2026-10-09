@@ -68,6 +68,42 @@ export default function AnalystDashboardPage() {
   const isAnalystOrAbove = role !== "CISO (Executive)";
   const isAdmin = role === "Administrator";
 
+  const handleEnrich = async (ioc: IOCItem) => {
+    try {
+      const res = await safeFetchIndicatorEnrichment(ioc.id);
+      if (res && res.data && res.data.enrichments && res.data.enrichments.length > 0) {
+        const primary = res.data.enrichments[0];
+        const agg = res.data.aggregate || {};
+        setEnrichmentData({
+          verdict: agg.verdict ? agg.verdict.toUpperCase() : (ioc.severity_score >= 80 ? "MALICIOUS" : "SUSPICIOUS"),
+          reputationScore: `${ioc.severity_score}/100`,
+          virustotalDetection: agg.malicious_votes ? `${agg.malicious_votes} Engines Flagged` : (primary.verdict || "Enriched"),
+          autonomousSystem: primary.raw_payload?.as_owner || primary.raw_payload?.asn || "AS Details N/A",
+          geolocation: primary.raw_payload?.country_name || primary.raw_payload?.country || "Location N/A",
+          abuseConfidence: `${ioc.confidence || agg.confidence || 0}%`,
+        });
+      } else {
+        setEnrichmentData({
+          verdict: ioc.severity_score >= 80 ? "HIGH SEVERITY (Pending Provider Verification)" : "SUSPICIOUS (Pending Enrichment)",
+          reputationScore: `${ioc.severity_score}/100`,
+          virustotalDetection: "No third-party provider record",
+          autonomousSystem: "Autonomous System data unavailable",
+          geolocation: "Country telemetry unavailable",
+          abuseConfidence: `${ioc.confidence || 0}%`,
+        });
+      }
+    } catch {
+      setEnrichmentData({
+        verdict: "ENRICHMENT UNAVAILABLE",
+        reputationScore: `${ioc.severity_score}/100`,
+        virustotalDetection: "Query error",
+        autonomousSystem: "N/A",
+        geolocation: "N/A",
+        abuseConfidence: `${ioc.confidence || 0}%`,
+      });
+    }
+  };
+
   const fetchIndicators = async () => {
     try {
       setLoading(true);
@@ -184,42 +220,6 @@ export default function AnalystDashboardPage() {
       setFetchError(`Expiration failed: ${err.message}`);
     } finally {
       setExpiringStale(false);
-    }
-  };
-
-  const handleEnrich = async (ioc: IOCItem) => {
-    try {
-      const res = await safeFetchIndicatorEnrichment(ioc.id);
-      if (res && res.data && res.data.enrichments && res.data.enrichments.length > 0) {
-        const primary = res.data.enrichments[0];
-        const agg = res.data.aggregate || {};
-        setEnrichmentData({
-          verdict: agg.verdict ? agg.verdict.toUpperCase() : (ioc.severity_score >= 80 ? "MALICIOUS" : "SUSPICIOUS"),
-          reputationScore: `${ioc.severity_score}/100`,
-          virustotalDetection: agg.malicious_votes ? `${agg.malicious_votes} Engines Flagged` : (primary.verdict || "Enriched"),
-          autonomousSystem: primary.raw_payload?.as_owner || primary.raw_payload?.asn || "AS Details N/A",
-          geolocation: primary.raw_payload?.country_name || primary.raw_payload?.country || "Location N/A",
-          abuseConfidence: `${ioc.confidence || agg.confidence || 0}%`,
-        });
-      } else {
-        setEnrichmentData({
-          verdict: ioc.severity_score >= 80 ? "HIGH SEVERITY (Pending Provider Verification)" : "SUSPICIOUS (Pending Enrichment)",
-          reputationScore: `${ioc.severity_score}/100`,
-          virustotalDetection: "No third-party provider record",
-          autonomousSystem: "Autonomous System data unavailable",
-          geolocation: "Country telemetry unavailable",
-          abuseConfidence: `${ioc.confidence || 0}%`,
-        });
-      }
-    } catch {
-      setEnrichmentData({
-        verdict: "ENRICHMENT UNAVAILABLE",
-        reputationScore: `${ioc.severity_score}/100`,
-        virustotalDetection: "Query error",
-        autonomousSystem: "N/A",
-        geolocation: "N/A",
-        abuseConfidence: `${ioc.confidence || 0}%`,
-      });
     }
   };
 

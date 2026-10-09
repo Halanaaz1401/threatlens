@@ -23,8 +23,8 @@ from app.models.alert import Alert, AlertSeverity, AlertStatus
 from app.models.incident import Incident, IncidentSeverity, IncidentStatus
 from app.models.case import Case, CaseStatus, CaseSeverity
 from app.models.detection_rule import DetectionRule
-from app.models.enrichment import IndicatorEnrichment
 from app.models.audit import AuditLog
+from app.services.audit_service import log_action
 from app.services import analytics_service
 from app.core.redis import publish_dashboard_event
 
@@ -248,16 +248,16 @@ def _validate_widget_config(widget_type: str, data_source: str, metric: str, ref
 def _log_audit(db: Session, user_id: str, action: str, details: Dict[str, Any]):
     """Record state change in canonical audit log."""
     try:
-        audit_entry = AuditLog(
-            user_id=user_id,
+        log_action(
+            db=db,
             action=action,
+            user_id=user_id,
             details=details,
-            created_at=datetime.now(timezone.utc)
+            target_resource="dashboard"
         )
-        db.add(audit_entry)
-        db.flush()
     except Exception:
         pass
+
 
 # ---------------------------------------------------------------------------
 # Dashboard CRUD Operations
