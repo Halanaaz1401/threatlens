@@ -3,28 +3,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, UserRole, PERSONA_CONFIG } from "@/context/RoleContext";
+import { useAuth, UserRole } from "@/context/RoleContext";
 
 interface NavLinkItem {
   label: string;
   href: string;
-  icon: string;
+  icon?: string;
   adminOnly?: boolean;
 }
 
 const PRIMARY_NAV_ITEMS: NavLinkItem[] = [
-  { label: "Home", href: "/", icon: "🏠" },
-  { label: "Analyst", href: "/dashboard/analyst", icon: "🛡️" },
-  { label: "Incidents", href: "/dashboard/incidents", icon: "⚠️" },
-  { label: "Hunting", href: "/dashboard/hunting", icon: "🎯" },
-  { label: "Cases", href: "/dashboard/cases", icon: "📁" },
+  { label: "Home", href: "/" },
+  { label: "SOC Analyst", href: "/dashboard/analyst" },
+  { label: "Incidents", href: "/dashboard/incidents" },
+  { label: "Threat Hunting", href: "/dashboard/hunting" },
+  { label: "Cases", href: "/dashboard/cases" },
 ];
 
 const SECONDARY_NAV_ITEMS: NavLinkItem[] = [
-  { label: "Executive View", href: "/dashboard/executive", icon: "📈" },
-  { label: "Dashboards", href: "/dashboard/builder", icon: "📊" },
-  { label: "Feeds & Telemetry", href: "/dashboard/feeds", icon: "📡" },
-  { label: "Admin Feeds", href: "/dashboard/admin/feeds", icon: "⚙️", adminOnly: true },
+  { label: "Executive View", href: "/dashboard/executive" },
+  { label: "Dashboards", href: "/dashboard/builder" },
+  { label: "Feeds & TAXII", href: "/dashboard/feeds" },
+  { label: "Admin Feeds", href: "/dashboard/admin/feeds", adminOnly: true },
 ];
 
 export function Navbar() {
@@ -51,7 +51,6 @@ export function Navbar() {
         setAccountMenuOpen(false);
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        // Only if clicked outside mobile drawer
         const toggleBtn = document.getElementById("mobile-menu-toggle-btn");
         if (toggleBtn && !toggleBtn.contains(event.target as Node)) {
           setMobileMenuOpen(false);
@@ -75,7 +74,7 @@ export function Navbar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
@@ -94,75 +93,73 @@ export function Navbar() {
   const visibleSecondaryItems = SECONDARY_NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
   const allNavItems = [...PRIMARY_NAV_ITEMS, ...visibleSecondaryItems];
 
-  // Helper for role badge colors
   const getRoleBadgeStyle = (userRoleStr: string) => {
     const norm = userRoleStr.toLowerCase();
-    if (norm.includes("admin")) return "text-red-400 bg-red-950/60 border-red-800";
-    if (norm.includes("engineer")) return "text-blue-400 bg-blue-950/60 border-blue-800";
-    if (norm.includes("analyst") || norm.includes("hunter") || norm.includes("incident"))
-      return "text-cyan-400 bg-cyan-950/60 border-cyan-800";
-    return "text-emerald-400 bg-emerald-950/60 border-emerald-800";
+    if (norm.includes("admin")) return "text-[#F2F2F0] bg-[#17181B] border-[#2B2C30]";
+    if (norm.includes("engineer")) return "text-[#19D5E5] bg-[#111214] border-[#2B2C30]";
+    if (norm.includes("analyst") || norm.includes("hunter")) return "text-[#19D5E5] bg-[#111214] border-[#2B2C30]";
+    return "text-[#A5A6AA] bg-[#111214] border-[#2B2C30]";
   };
 
   return (
-    <header className="w-full bg-[#080d1a]/95 backdrop-blur border-b border-slate-800/90 px-3 sm:px-6 py-2.5 sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+    <header className="w-full bg-[#090A0C]/95 backdrop-blur-md border-b border-[#2B2C30] px-3 sm:px-6 py-2.5 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
         
         {/* Left: Brand + Search */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <span className="w-8 h-8 rounded-lg bg-red-950/80 border border-red-500/70 flex items-center justify-center text-red-400 text-xs font-bold shadow-lg shadow-red-950/50 group-hover:border-red-400 transition">
-              ((o))
+            <span className="w-8 h-8 rounded-lg bg-[#111214] border border-[#2B2C30] flex items-center justify-center text-[#F2F2F0] text-xs font-mono font-bold shadow-inner group-hover:border-[#19D5E5]/60 transition">
+              TL
             </span>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="font-black tracking-wider text-slate-100 text-sm sm:text-base group-hover:text-white transition">
+                <span className="font-editorial-sans font-bold tracking-tight text-[#F2F2F0] text-sm sm:text-base group-hover:text-white transition">
                   THREATLENS
                 </span>
-                <span className="text-[10px] bg-slate-800 text-cyan-400 px-1.5 py-0.2 rounded font-mono font-semibold border border-slate-700 hidden xs:inline">
-                  SOC
+                <span className="text-[9px] bg-[#17181B] text-[#19D5E5] px-1.5 py-0.5 rounded font-mono font-semibold border border-[#2B2C30] hidden xs:inline">
+                  CTI
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-                Enterprise CTI Platform
+              <span className="text-[10px] text-[#72747A] font-mono hidden sm:inline leading-none">
+                Security Operations Platform
               </span>
             </div>
           </Link>
 
-          {/* Quick Search Box (Desktop) */}
+          {/* Search Box */}
           <form onSubmit={handleSearchSubmit} className="relative hidden xl:block w-48 2xl:w-60">
             <button
               type="submit"
-              className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 hover:text-cyan-400 text-xs transition"
+              className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-[#72747A] hover:text-[#19D5E5] text-xs transition"
               title="Search threat intelligence"
             >
-              🔍
+              ⌕
             </button>
             <input
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               placeholder="Search IOC, CVE, ATT&CK..."
-              className="w-full bg-[#0d1527] border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+              className="w-full bg-[#111214] border border-[#2B2C30] rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-[#F2F2F0] placeholder-[#72747A] focus:outline-none focus:border-[#19D5E5] transition font-mono"
             />
           </form>
         </div>
 
-        {/* Center: Desktop Navigation Bar (Large screens) */}
-        <nav className="hidden lg:flex items-center gap-1 bg-[#0d1527]/80 border border-slate-800/80 p-1 rounded-xl shrink-0" aria-label="Main Navigation">
+        {/* Center: Desktop Navigation Bar */}
+        <nav className="hidden lg:flex items-center gap-1 bg-[#111214] border border-[#2B2C30] p-1 rounded-xl shrink-0" aria-label="Main Navigation">
           {PRIMARY_NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-cyan-950/80 text-cyan-300 border border-cyan-700/80 shadow-sm shadow-cyan-950/50"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    ? "bg-[#17181B] text-[#F2F2F0] border border-[#3F4046] shadow-sm"
+                    : "text-[#A5A6AA] hover:text-[#F2F2F0] hover:bg-[#17181B]/50"
                 }`}
               >
-                <span className="text-xs">{item.icon}</span>
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5]" />}
                 <span>{item.label}</span>
               </Link>
             );
@@ -173,34 +170,34 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 moreMenuOpen || visibleSecondaryItems.some((i) => pathname === i.href)
-                  ? "bg-slate-800 text-cyan-300"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  ? "bg-[#17181B] text-[#F2F2F0]"
+                  : "text-[#A5A6AA] hover:text-[#F2F2F0] hover:bg-[#17181B]/50"
               }`}
               aria-expanded={moreMenuOpen}
               aria-haspopup="true"
             >
               <span>More</span>
-              <span className="text-[10px]">▼</span>
+              <span className="text-[9px] text-[#72747A]">▾</span>
             </button>
 
             {moreMenuOpen && (
-              <div className="absolute left-0 mt-2 w-48 bg-[#0d1527] border border-slate-800 rounded-xl shadow-2xl py-1.5 z-50 animate-fadeIn">
+              <div className="absolute left-0 mt-2 w-48 bg-[#111214] border border-[#2B2C30] rounded-xl shadow-2xl py-1.5 z-50 animate-fadeIn">
                 {visibleSecondaryItems.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold transition ${
+                      className={`flex items-center gap-2 px-3 py-2 text-xs font-medium transition ${
                         isActive
-                          ? "bg-cyan-950/80 text-cyan-300"
-                          : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                          ? "bg-[#17181B] text-[#19D5E5]"
+                          : "text-[#A5A6AA] hover:bg-[#17181B] hover:text-[#F2F2F0]"
                       }`}
                       onClick={() => setMoreMenuOpen(false)}
                     >
-                      <span>{item.icon}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5]" />}
                       <span>{item.label}</span>
                     </Link>
                   );
@@ -210,13 +207,13 @@ export function Navbar() {
           </div>
         </nav>
 
-        {/* Right: Telemetry Live Status + User Identity / Login + Hamburger */}
+        {/* Right: Live Telemetry + User Identity / Login + Mobile Menu */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
-          {/* Live Stream Telemetry Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-400 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono">LIVE</span>
+          {/* Live Telemetry Status Pill */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-[#111214] border border-[#2B2C30] px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium text-[#A5A6AA] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5] animate-pulse" />
+            <span>LIVE CTI</span>
           </div>
 
           {/* User Account / Session Area */}
@@ -226,38 +223,38 @@ export function Navbar() {
                 id="header-account-menu-btn"
                 type="button"
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
-                className="flex items-center gap-2 bg-[#0d1527] border border-slate-700/80 hover:border-cyan-500/80 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer"
+                className="flex items-center gap-2 bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer"
                 aria-expanded={accountMenuOpen}
                 aria-haspopup="true"
                 aria-label="User account menu"
               >
-                <div className="w-6 h-6 rounded-full bg-cyan-950 border border-cyan-500/60 flex items-center justify-center text-cyan-300 text-xs font-bold">
+                <div className="w-6 h-6 rounded-md bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[#F2F2F0] text-xs font-mono font-bold">
                   {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div className="hidden md:flex flex-col text-left">
-                  <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[110px]">
+                  <span className="text-[11px] font-medium text-[#F2F2F0] leading-tight truncate max-w-[110px]">
                     {user?.full_name || user?.email?.split("@")[0] || "Operator"}
                   </span>
-                  <span id="header-user-role-badge" className="text-[9px] text-cyan-400 font-mono uppercase leading-tight truncate max-w-[110px]">
+                  <span id="header-user-role-badge" className="text-[9px] text-[#19D5E5] font-mono uppercase leading-tight truncate max-w-[110px]">
                     {serverRole || role}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 ml-0.5">▼</span>
+                <span className="text-[9px] text-[#72747A] ml-0.5">▾</span>
               </button>
 
               {/* Account Dropdown */}
               {accountMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#0d1527] border border-slate-800 rounded-xl shadow-2xl p-3 z-50 animate-fadeIn text-xs">
+                <div className="absolute right-0 mt-2 w-64 bg-[#111214] border border-[#2B2C30] rounded-xl shadow-2xl p-3 z-50 animate-fadeIn text-xs">
                   {/* User Profile Summary */}
-                  <div className="pb-3 border-b border-slate-800 mb-3">
-                    <div className="font-bold text-slate-100 truncate text-sm">
+                  <div className="pb-3 border-b border-[#2B2C30] mb-3">
+                    <div className="font-semibold text-[#F2F2F0] truncate text-sm">
                       {user?.full_name || user?.email || "Security Operator"}
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                    <div className="text-[11px] text-[#72747A] truncate font-mono mt-0.5">
                       {user?.email}
                     </div>
                     <div className="mt-2 flex items-center gap-1.5">
-                      <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${getRoleBadgeStyle(serverRole || role)}`}>
+                      <span className={`text-[9px] px-2 py-0.5 rounded border font-mono font-bold ${getRoleBadgeStyle(serverRole || role)}`}>
                         SERVER ROLE: {(serverRole || role).toUpperCase()}
                       </span>
                     </div>
@@ -267,31 +264,29 @@ export function Navbar() {
                   <div className="space-y-1 mb-3">
                     <Link
                       href="/dashboard/builder"
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[#A5A6AA] hover:bg-[#17181B] hover:text-[#F2F2F0] transition"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      <span>📊</span>
                       <span>Custom Dashboards</span>
                     </Link>
                     <Link
                       href="/dashboard/analyst"
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[#A5A6AA] hover:bg-[#17181B] hover:text-[#F2F2F0] transition"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      <span>🛡️</span>
                       <span>Analyst Triage Queue</span>
                     </Link>
                   </div>
 
-                  {/* Persona Preview Switcher (Explicitly marked as UI Preview) */}
-                  <div className="pt-2 pb-3 border-t border-slate-800">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase block mb-1">
+                  {/* Persona Switcher Preview */}
+                  <div className="pt-2 pb-3 border-t border-[#2B2C30]">
+                    <span className="text-[10px] text-[#72747A] font-mono uppercase block mb-1">
                       UI Persona Preview:
                     </span>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as UserRole)}
-                      className="w-full bg-[#080d1a] border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-cyan-400 font-medium focus:outline-none cursor-pointer"
+                      className="w-full bg-[#17181B] border border-[#2B2C30] rounded-lg px-2 py-1.5 text-xs text-[#F2F2F0] font-medium focus:outline-none cursor-pointer"
                     >
                       <option value="Administrator">Administrator (All Tabs)</option>
                       <option value="Tier-2 SOC Analyst">Priya Nair (SOC Analyst)</option>
@@ -304,7 +299,7 @@ export function Navbar() {
                   </div>
 
                   {/* Sign Out Button */}
-                  <div className="pt-2 border-t border-slate-800">
+                  <div className="pt-2 border-t border-[#2B2C30]">
                     <button
                       id="header-logout-btn"
                       type="button"
@@ -312,9 +307,8 @@ export function Navbar() {
                         setAccountMenuOpen(false);
                         await logout();
                       }}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-400 hover:text-red-200 font-bold transition cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#17181B] hover:bg-red-950/40 border border-[#2B2C30] hover:border-red-800/60 text-red-400 hover:text-red-300 font-semibold transition cursor-pointer text-xs"
                     >
-                      <span>🚪</span>
                       <span>Sign Out of Console</span>
                     </button>
                   </div>
@@ -325,9 +319,8 @@ export function Navbar() {
             <Link
               id="header-signin-btn"
               href="/login"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition shadow-sm shadow-cyan-950/60 shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#090A0C] bg-[#F2F2F0] hover:bg-white transition shadow-sm shrink-0"
             >
-              <span>🔐</span>
               <span>Sign In</span>
             </Link>
           )}
@@ -337,14 +330,14 @@ export function Navbar() {
             id="mobile-menu-toggle-btn"
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg bg-[#0d1527] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition"
+            className="lg:hidden p-2 rounded-lg bg-[#111214] border border-[#2B2C30] text-[#A5A6AA] hover:text-[#F2F2F0] transition"
             aria-label="Toggle Navigation Menu"
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? (
-              <span className="text-lg font-bold">✕</span>
+              <span className="text-sm font-mono font-bold">✕</span>
             ) : (
-              <span className="text-lg font-bold">☰</span>
+              <span className="text-sm font-mono font-bold">☰</span>
             )}
           </button>
 
@@ -352,11 +345,11 @@ export function Navbar() {
 
       </div>
 
-      {/* Mobile Drawer Navigation (Slide-down overlay for Mobile / Tablet) */}
+      {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
         <div
           ref={mobileMenuRef}
-          className="lg:hidden mt-2 pt-3 pb-4 border-t border-slate-800 space-y-3 animate-fadeIn"
+          className="lg:hidden mt-2 pt-3 pb-4 border-t border-[#2B2C30] space-y-3 animate-fadeIn"
           role="navigation"
           aria-label="Mobile Navigation"
         >
@@ -364,17 +357,17 @@ export function Navbar() {
           <form onSubmit={handleSearchSubmit} className="relative px-1">
             <button
               type="submit"
-              className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500"
+              className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#72747A]"
               title="Search threat intelligence"
             >
-              🔍
+              ⌕
             </button>
             <input
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               placeholder="Search IOCs, CVEs, MITRE ATT&CK..."
-              className="w-full bg-[#0d1527] border border-slate-800 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-[#111214] border border-[#2B2C30] rounded-lg pl-8 pr-3 py-2 text-xs text-[#F2F2F0] placeholder-[#72747A] focus:outline-none focus:border-[#19D5E5] font-mono"
             />
           </form>
 
@@ -386,14 +379,14 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition ${
                     isActive
-                      ? "bg-cyan-950/90 text-cyan-300 border border-cyan-700/80"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white bg-[#0d1527]/50"
+                      ? "bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]"
+                      : "text-[#A5A6AA] hover:bg-[#17181B] hover:text-[#F2F2F0] bg-[#111214]"
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span className="text-sm">{item.icon}</span>
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5]" />}
                   <span className="truncate">{item.label}</span>
                 </Link>
               );
@@ -401,19 +394,19 @@ export function Navbar() {
           </div>
 
           {/* User Section in Mobile Drawer */}
-          <div className="px-1 pt-2 border-t border-slate-800">
+          <div className="px-1 pt-2 border-t border-[#2B2C30]">
             {isAuthenticated ? (
-              <div className="bg-[#0d1527] border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
+              <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-200">
+                    <span className="text-xs font-medium text-[#F2F2F0]">
                       {user?.full_name || user?.email?.split("@")[0] || "Operator"}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-[#72747A] font-mono">
                       {user?.email}
                     </span>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${getRoleBadgeStyle(serverRole || role)}`}>
+                  <span className={`text-[9px] px-2 py-0.5 rounded border font-mono font-bold ${getRoleBadgeStyle(serverRole || role)}`}>
                     {(serverRole || role).toUpperCase()}
                   </span>
                 </div>
@@ -424,19 +417,17 @@ export function Navbar() {
                     setMobileMenuOpen(false);
                     await logout();
                   }}
-                  className="w-full mt-1 py-2 px-3 rounded-lg bg-red-950/50 border border-red-800 text-red-400 font-bold text-xs flex items-center justify-center gap-1.5"
+                  className="w-full mt-1 py-2 px-3 rounded-lg bg-[#17181B] border border-[#2B2C30] text-red-400 font-semibold text-xs flex items-center justify-center gap-1.5"
                 >
-                  <span>🚪</span>
                   <span>Sign Out</span>
                 </button>
               </div>
             ) : (
               <Link
                 href="/login"
-                className="w-full py-2.5 px-4 rounded-xl bg-cyan-400 text-black font-bold text-xs flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#F2F2F0] text-[#090A0C] font-semibold text-xs flex items-center justify-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <span>🔐</span>
                 <span>Sign In to Console</span>
               </Link>
             )}

@@ -109,17 +109,17 @@ export default function ExecutiveDashboardPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              📈 Executive Risk Posture &amp; CISO Board Overview
+            <h1 className="text-lg font-bold text-[#F2F2F0] font-editorial-sans">
+              Executive Risk Posture &amp; CISO Board Overview
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800">
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
               {persona.name} ({persona.title})
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#72747A] font-mono">
             Authoritative exposure metrics, MTTD/MTTR operational performance, and real-time risk tracking.
           </p>
         </div>
@@ -128,14 +128,14 @@ export default function ExecutiveDashboardPage() {
           <button
             onClick={handleGeneratePdf}
             disabled={generatingReport}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-950 transition disabled:opacity-50"
+            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-2 shadow-sm transition disabled:opacity-50"
           >
-            <span>📄</span>
             <span>{generatingReport ? "Compiling PDF..." : "Generate Executive PDF Report"}</span>
+            <span className="font-mono text-sm">&rarr;</span>
           </button>
           <Link
             href="/"
-            className="bg-[#0e1628] hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs transition"
+            className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#A5A6AA] hover:text-[#F2F2F0] font-medium px-4 py-2 rounded-lg text-xs transition font-mono"
           >
             Home Hub &rarr;
           </Link>
@@ -144,34 +144,34 @@ export default function ExecutiveDashboardPage() {
 
       {/* Executive PDF Briefing Notice & Recent Reports List */}
       {(reportSuccessMsg || reports.length > 0) && (
-        <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-4 space-y-3 shadow-sm text-xs">
+        <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-4 space-y-3 shadow-sm text-xs font-mono">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-bold text-slate-200 flex items-center gap-1.5">
-              <span>📄</span> Generated Executive PDF Reports (FR-23)
+            <span className="font-semibold text-[#F2F2F0] flex items-center gap-1.5 uppercase text-[11px]">
+              <span>Generated Executive PDF Reports (FR-23)</span>
             </span>
             {reportSuccessMsg && (
-              <span className="text-emerald-400 font-medium">{reportSuccessMsg}</span>
+              <span className="text-[#19D5E5] font-medium">{reportSuccessMsg}</span>
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {reports.slice(0, 3).map((r) => (
-              <div key={r.id} className="bg-[#080d19] border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
+              <div key={r.id} className="bg-[#17181B] border border-[#2B2C30] rounded-lg p-3 flex items-center justify-between gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-cyan-400">{r.report_code}</span>
-                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-300">
+                    <span className="font-mono font-bold text-[#F2F2F0]">{r.report_code}</span>
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-[#090A0C] text-[#A5A6AA] border border-[#2B2C30]">
                       {r.time_range}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">{new Date(r.created_at).toLocaleDateString()}</p>
+                  <p className="text-[11px] text-[#72747A]">{new Date(r.created_at).toLocaleDateString()}</p>
                 </div>
                 <a
                   href={getReportDownloadUrl(r.id)}
                   download={r.file_name}
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition"
+                  className="bg-[#111214] hover:bg-[#202125] border border-[#2B2C30] text-[#F2F2F0] font-medium px-2.5 py-1.5 rounded text-xs transition"
                 >
                   Download &darr;
                 </a>
@@ -184,13 +184,13 @@ export default function ExecutiveDashboardPage() {
       {/* CISO High-Level Metric Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => (
-          <div key={i} className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-2 shadow-sm">
-            <span className="text-xs text-slate-400 font-medium">{k.label}</span>
+          <div key={i} className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-5 space-y-2 shadow-sm transition">
+            <span className="text-[11px] font-mono text-[#72747A] uppercase tracking-wider block">{k.label}</span>
             <div className="flex items-baseline justify-between">
-              <span className={`text-2xl font-black ${k.color}`}>{loading ? "..." : k.value}</span>
-              <span className="text-[11px] font-mono text-slate-400">{k.change}</span>
+              <span className="text-2xl font-bold font-editorial-sans text-[#F2F2F0]">{loading ? "..." : k.value}</span>
+              <span className="text-[10px] font-mono text-[#A5A6AA] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">{k.change}</span>
             </div>
-            <p className="text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-800/80">{k.sub}</p>
+            <p className="text-[10px] text-[#72747A] font-mono pt-1 border-t border-[#202125]">{k.sub}</p>
           </div>
         ))}
       </div>

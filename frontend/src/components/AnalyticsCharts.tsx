@@ -92,26 +92,26 @@ export default function AnalyticsCharts({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Time Series Ingestion Volume */}
-      <div className="lg:col-span-8 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="lg:col-span-8 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
               <span>📈</span> Threat Ingestion &amp; Severity Velocity
             </h3>
-            <p className="text-xs text-slate-400">
-              Correlated throughput across 6 intelligence feeds ({totalIngests} total ingests)
+            <p className="text-xs text-[#A5A6AA]">
+              Correlated throughput across intelligence feeds ({totalIngests} total ingests)
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#080d19] border border-slate-800 rounded-xl p-1 text-[11px] font-mono">
+          <div className="flex items-center gap-1.5 bg-[#090A0C] border border-[#2B2C30] rounded-lg p-1 text-[11px] font-mono">
             {["24h", "7d", "30d", "90d"].map((tr) => (
               <button
                 key={tr}
                 onClick={() => handleRange(tr)}
-                className={`px-2.5 py-0.5 rounded-lg font-bold transition ${
+                className={`px-2.5 py-0.5 rounded font-bold transition cursor-pointer ${
                   selectedRange === tr
-                    ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-[#17181B] text-[#19D5E5] border border-[#19D5E5]/40"
+                    : "text-[#72747A] hover:text-[#F2F2F0]"
                 }`}
               >
                 {tr}
@@ -122,42 +122,44 @@ export default function AnalyticsCharts({
 
         <div className="h-64 w-full">
           {isLoading ? (
-            <div className="h-full w-full flex items-center justify-center text-xs text-slate-500 font-mono animate-pulse">
+            <div className="h-full w-full flex items-center justify-center text-xs text-[#72747A] font-mono animate-pulse">
               Aggregating live threat velocity...
             </div>
           ) : series.length === 0 || totalIngests === 0 ? (
-            <div className="h-full w-full flex flex-col items-center justify-center text-xs text-slate-500 font-mono gap-1">
+            <div className="h-full w-full flex flex-col items-center justify-center text-xs text-[#72747A] font-mono gap-1">
               <span>Zero indicator ingests in selected {selectedRange} window</span>
-              <span className="text-[10px] text-slate-600">Feed ingestion active</span>
+              <span className="text-[10px] text-[#72747A]">Feed ingestion active</span>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series}>
                 <defs>
                   <linearGradient id="colorIngest" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#19D5E5" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#19D5E5" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="label" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
+                <XAxis dataKey="label" stroke="#72747A" fontSize={11} />
+                <YAxis stroke="#72747A" fontSize={11} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#080d19",
-                    borderColor: "#334155",
-                    borderRadius: "0.75rem",
+                    backgroundColor: "#111214",
+                    borderColor: "#2B2C30",
+                    borderRadius: "0.5rem",
                     fontSize: "12px",
+                    color: "#F2F2F0",
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="ingests"
                   name="Total Ingests"
-                  stroke="#06b6d4"
+                  stroke="#19D5E5"
+                  strokeWidth={1.5}
                   fillOpacity={1}
                   fill="url(#colorIngest)"
                 />
@@ -165,7 +167,8 @@ export default function AnalyticsCharts({
                   type="monotone"
                   dataKey="high_severity"
                   name="High Severity"
-                  stroke="#ef4444"
+                  stroke="#f87171"
+                  strokeWidth={1.5}
                   fillOpacity={1}
                   fill="url(#colorHigh)"
                 />
@@ -176,19 +179,19 @@ export default function AnalyticsCharts({
       </div>
 
       {/* Severity Ratio Donut */}
-      <div className="lg:col-span-4 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="lg:col-span-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
             <span>🎯</span> Active Severity Distribution
           </h3>
-          <p className="text-xs text-slate-400">Aggregated risk tiers ({totalSeverityCount} IOCs)</p>
+          <p className="text-xs text-[#A5A6AA]">Aggregated risk tiers ({totalSeverityCount} IOCs)</p>
         </div>
 
         <div className="h-44 w-full flex items-center justify-center">
           {isLoading ? (
-            <div className="text-xs text-slate-500 font-mono animate-pulse">Calculating...</div>
+            <div className="text-xs text-[#72747A] font-mono animate-pulse">Calculating...</div>
           ) : totalSeverityCount === 0 ? (
-            <div className="text-xs text-slate-500 font-mono">No active indicators</div>
+            <div className="text-xs text-[#72747A] font-mono">No active indicators</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -205,10 +208,11 @@ export default function AnalyticsCharts({
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#080d19",
-                    borderColor: "#334155",
-                    borderRadius: "0.75rem",
+                    backgroundColor: "#111214",
+                    borderColor: "#2B2C30",
+                    borderRadius: "0.5rem",
                     fontSize: "12px",
+                    color: "#F2F2F0",
                   }}
                 />
               </PieChart>
@@ -219,14 +223,14 @@ export default function AnalyticsCharts({
         <div className="space-y-1.5 text-xs font-medium">
           {severity.map((item, i) => (
             <div key={i} className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-300">
+              <span className="flex items-center gap-2 text-[#A5A6AA]">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: item.color }}
                 />
                 {item.name}
               </span>
-              <span className="font-mono text-slate-400">{item.value}</span>
+              <span className="font-mono text-[#F2F2F0]">{item.value}</span>
             </div>
           ))}
         </div>

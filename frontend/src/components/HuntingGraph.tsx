@@ -53,10 +53,10 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const SEVERITY_COLORS: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  CRITICAL: { bg: "#450a0a", border: "#ef4444", text: "#fca5a5", glow: "rgba(239,68,68,0.4)" },
-  HIGH: { bg: "#431407", border: "#f97316", text: "#fdba74", glow: "rgba(249,115,22,0.3)" },
-  MEDIUM: { bg: "#422006", border: "#eab308", text: "#fde047", glow: "rgba(234,179,8,0.3)" },
-  LOW: { bg: "#0f172a", border: "#3b82f6", text: "#93c5fd", glow: "rgba(59,130,246,0.2)" },
+  CRITICAL: { bg: "#1f1416", border: "#f87171", text: "#fca5a5", glow: "rgba(248,113,113,0.3)" },
+  HIGH: { bg: "#221915", border: "#fb923c", text: "#fdba74", glow: "rgba(251,146,60,0.25)" },
+  MEDIUM: { bg: "#221f15", border: "#fbbf24", text: "#fde68a", glow: "rgba(251,191,36,0.2)" },
+  LOW: { bg: "#14171d", border: "#64748b", text: "#cbd5e1", glow: "rgba(100,116,139,0.2)" },
 };
 
 export function HuntingGraph({
@@ -146,11 +146,11 @@ export function HuntingGraph({
 
   if (loading) {
     return (
-      <div className="w-full h-[520px] bg-[#070c18] border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-8 space-y-4">
-        <div className="w-10 h-10 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />
+      <div className="w-full h-[520px] bg-[#090A0C] border border-[#2B2C30] rounded-xl flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="w-9 h-9 border-2 border-[#19D5E5]/20 border-t-[#19D5E5] rounded-full animate-spin" />
         <div className="text-center space-y-1">
-          <p className="text-xs font-mono font-bold text-slate-200">Traversing Indicator Relationship Graph</p>
-          <p className="text-[11px] text-slate-500 font-mono">Resolving bounded multi-hop graph topology...</p>
+          <p className="text-xs font-mono font-bold text-[#F2F2F0]">Traversing Indicator Relationship Graph</p>
+          <p className="text-[11px] text-[#72747A] font-mono">Resolving bounded multi-hop graph topology...</p>
         </div>
       </div>
     );
@@ -158,11 +158,11 @@ export function HuntingGraph({
 
   if (error) {
     return (
-      <div className="w-full h-[520px] bg-[#070c18] border border-red-900/50 rounded-2xl flex flex-col items-center justify-center p-8 space-y-3">
-        <span className="text-3xl">⚠️</span>
+      <div className="w-full h-[520px] bg-[#090A0C] border border-red-900/60 rounded-xl flex flex-col items-center justify-center p-8 space-y-3">
+        <span className="text-2xl text-red-400">⚠️</span>
         <div className="text-center space-y-1 max-w-md">
           <p className="text-xs font-mono font-bold text-red-400">Graph Query Error</p>
-          <p className="text-[11px] text-slate-400">{error}</p>
+          <p className="text-[11px] text-[#A5A6AA]">{error}</p>
         </div>
       </div>
     );
@@ -170,12 +170,12 @@ export function HuntingGraph({
 
   if (!graphData || graphData.nodes.length === 0) {
     return (
-      <div className="w-full h-[520px] bg-[#070c18] border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-8 space-y-3">
-        <span className="text-3xl">🎯</span>
+      <div className="w-full h-[520px] bg-[#090A0C] border border-[#2B2C30] rounded-xl flex flex-col items-center justify-center p-8 space-y-3">
+        <span className="text-2xl text-[#72747A]">🕸️</span>
         <div className="text-center space-y-1 max-w-md">
-          <p className="text-xs font-mono font-bold text-slate-300">No Indicator Selected For Graph Analysis</p>
-          <p className="text-[11px] text-slate-500">
-            Use the Hunting Query Bar above to search an IOC, or select a target indicator from the list below to traverse its relationship graph.
+          <p className="text-xs font-mono font-bold text-[#F2F2F0]">No Indicator Selected For Graph Analysis</p>
+          <p className="text-[11px] text-[#72747A]">
+            Use the Hunting Query Bar above to search an IOC, or select a target indicator from the list to traverse its relationship graph.
           </p>
         </div>
       </div>
@@ -185,40 +185,46 @@ export function HuntingGraph({
   const isSingleNode = graphData.nodes.length === 1 && graphData.edges.length === 0;
 
   return (
-    <div className="relative w-full h-[520px] bg-[#070c18] border border-slate-800 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+    <div className="relative w-full h-[520px] bg-[#090A0C] border border-[#2B2C30] rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
       {/* Background Grid Pattern */}
-      <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="graph-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#1e293b" strokeWidth="0.8" />
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#202125" strokeWidth="0.8" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#graph-grid)" />
       </svg>
 
+      {/* Technical corner coordinate markings */}
+      <div className="absolute top-3 right-3 text-[10px] font-mono text-[#72747A] tracking-wider pointer-events-none">
+        GRAPH // TOPOLOGY 2D
+      </div>
+
       {/* Graph Statistics Watermark */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2 text-[10px] font-mono">
-        <span className="px-2.5 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-cyan-400 font-bold">
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-2 text-[10px] font-mono">
+        <span className="px-2.5 py-1 bg-[#111214] border border-[#2B2C30] rounded text-[#19D5E5] font-bold">
           Nodes: {graphData.total_nodes}
         </span>
-        <span className="px-2.5 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-purple-400 font-bold">
+        <span className="px-2.5 py-1 bg-[#111214] border border-[#2B2C30] rounded text-[#A5A6AA] font-bold">
           Edges: {graphData.total_edges}
         </span>
-        <span className="px-2.5 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-slate-400">
+        <span className="px-2.5 py-1 bg-[#111214] border border-[#2B2C30] rounded text-[#72747A]">
           Depth: {graphData.depth_reached} / {graphData.max_depth}
         </span>
       </div>
 
       {/* Single Node Isolated Banner */}
       {isSingleNode && (
-        <div className="absolute bottom-4 left-4 right-4 z-10 p-2.5 rounded-xl bg-amber-950/60 border border-amber-800/80 text-[11px] text-amber-300 flex items-center justify-between">
+        <div className="absolute bottom-3 left-3 right-3 z-10 p-2.5 rounded-lg bg-[#17181B] border border-amber-900/60 text-[11px] text-amber-300 flex items-center justify-between">
           <span>⚠️ Isolated Node: No known relationships recorded in the threat graph yet.</span>
-          <span className="font-mono text-[10px] text-amber-400">Click &apos;Derive Relationships&apos; to link evidence</span>
+          <span className="font-mono text-[10px] text-amber-400">Click &apos;Discover Relationships&apos; to link evidence</span>
         </div>
       )}
 
-      {/* SVG Canvas */}
+      {/* SVG Canvas with data-graph attribute for E2E tests */}
       <svg
+        data-graph="hunting-topology"
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-full max-h-[520px] select-none"
         preserveAspectRatio="xMidYMid meet"
@@ -233,7 +239,7 @@ export function HuntingGraph({
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#72747A" />
           </marker>
           <marker
             id="arrow-hover"
@@ -244,13 +250,13 @@ export function HuntingGraph({
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#19D5E5" />
           </marker>
         </defs>
 
         {/* Orbit Guideline Circles */}
-        <circle cx={centerX} cy={centerY} r={Math.min(width, height) * 0.28} fill="none" stroke="#1e293b" strokeDasharray="4 4" strokeWidth="1" />
-        <circle cx={centerX} cy={centerY} r={Math.min(width, height) * 0.42} fill="none" stroke="#0f172a" strokeDasharray="4 4" strokeWidth="1" />
+        <circle cx={centerX} cy={centerY} r={Math.min(width, height) * 0.28} fill="none" stroke="#202125" strokeDasharray="4 4" strokeWidth="1" />
+        <circle cx={centerX} cy={centerY} r={Math.min(width, height) * 0.42} fill="none" stroke="#17181B" strokeDasharray="4 4" strokeWidth="1" />
 
         {/* Relationship Edges */}
         <g className="edges">
@@ -278,8 +284,8 @@ export function HuntingGraph({
                   y1={edge.y1}
                   x2={edge.x2}
                   y2={edge.y2}
-                  stroke={isHovered ? "#38bdf8" : "#334155"}
-                  strokeWidth={isHovered ? 2.5 : 1.2}
+                  stroke={isHovered ? "#19D5E5" : "#2B2C30"}
+                  strokeWidth={isHovered ? 2 : 1}
                   strokeDasharray={edge.confidence < 60 ? "4 3" : undefined}
                   markerEnd={isHovered ? "url(#arrow-hover)" : "url(#arrow)"}
                 />
@@ -290,15 +296,15 @@ export function HuntingGraph({
                     y="-9"
                     width="84"
                     height="18"
-                    rx="9"
-                    fill="#0b1220"
-                    stroke={isHovered ? "#38bdf8" : "#1e293b"}
+                    rx="4"
+                    fill="#111214"
+                    stroke={isHovered ? "#19D5E5" : "#2B2C30"}
                     strokeWidth="1"
                   />
                   <text
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isHovered ? "#38bdf8" : "#94a3b8"}
+                    fill={isHovered ? "#19D5E5" : "#A5A6AA"}
                     fontSize="8.5"
                     fontFamily="monospace"
                     fontWeight="600"
@@ -322,7 +328,7 @@ export function HuntingGraph({
             const isHovered = hoveredNode?.id === node.id;
             const sevColor = SEVERITY_COLORS[node.severity] || SEVERITY_COLORS.LOW;
             const icon = TYPE_ICONS[node.type] || "🔹";
-            const radius = isRoot ? 26 : 20;
+            const radius = isRoot ? 24 : 18;
 
             return (
               <g
@@ -334,15 +340,14 @@ export function HuntingGraph({
                 onMouseEnter={() => setHoveredNode(node)}
                 onMouseLeave={() => setHoveredNode(null)}
               >
-                {/* Outer Glow Halo for Selected or Root */}
+                {/* Outer Halo for Selected or Root */}
                 {(isSelected || isRoot || isHovered) && (
                   <circle
-                    r={radius + 6}
+                    r={radius + 5}
                     fill="none"
-                    stroke={isSelected ? "#06b6d4" : isRoot ? "#a855f7" : sevColor.border}
-                    strokeWidth={isSelected ? 3 : 2}
+                    stroke={isSelected ? "#19D5E5" : isRoot ? "#F2F2F0" : sevColor.border}
+                    strokeWidth={isSelected ? 2 : 1.5}
                     opacity="0.8"
-                    className={isRoot ? "animate-pulse" : ""}
                   />
                 )}
 
@@ -350,15 +355,15 @@ export function HuntingGraph({
                 <circle
                   r={radius}
                   fill={sevColor.bg}
-                  stroke={isSelected ? "#06b6d4" : sevColor.border}
-                  strokeWidth={isRoot ? 2.5 : 1.5}
+                  stroke={isSelected ? "#19D5E5" : sevColor.border}
+                  strokeWidth={isRoot ? 2 : 1}
                 />
 
                 {/* Node Center Icon */}
                 <text
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={isRoot ? "14" : "11"}
+                  fontSize={isRoot ? "13" : "10"}
                 >
                   {icon}
                 </text>
@@ -370,15 +375,15 @@ export function HuntingGraph({
                     y="-8"
                     width="110"
                     height="16"
-                    rx="4"
-                    fill="#080d19"
-                    stroke={isSelected ? "#06b6d4" : "#1e293b"}
+                    rx="3"
+                    fill="#111214"
+                    stroke={isSelected ? "#19D5E5" : "#2B2C30"}
                     strokeWidth="0.8"
                   />
                   <text
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill={isSelected ? "#38bdf8" : "#e2e8f0"}
+                    fill={isSelected ? "#19D5E5" : "#F2F2F0"}
                     fontSize="9"
                     fontFamily="monospace"
                     fontWeight="600"
@@ -394,43 +399,43 @@ export function HuntingGraph({
 
       {/* Floating Hover Tooltip */}
       {hoveredNode && (
-        <div className="absolute bottom-4 right-4 z-20 bg-[#0b1220]/95 border border-cyan-500/70 p-3 rounded-xl shadow-xl max-w-xs space-y-1.5 backdrop-blur text-xs">
+        <div className="absolute bottom-3 right-3 z-20 bg-[#111214]/95 border border-[#19D5E5] p-3 rounded-lg shadow-xl max-w-xs space-y-1.5 backdrop-blur text-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-cyan-400 font-bold uppercase">{hoveredNode.type}</span>
+            <span className="font-mono text-[#19D5E5] font-bold uppercase">{hoveredNode.type}</span>
             <span
               className="text-[10px] font-bold px-1.5 py-0.5 rounded font-mono"
               style={{
-                backgroundColor: SEVERITY_COLORS[hoveredNode.severity]?.bg || "#0f172a",
-                color: SEVERITY_COLORS[hoveredNode.severity]?.text || "#94a3b8",
+                backgroundColor: SEVERITY_COLORS[hoveredNode.severity]?.bg || "#17181B",
+                color: SEVERITY_COLORS[hoveredNode.severity]?.text || "#A5A6AA",
               }}
             >
               {hoveredNode.severity}
             </span>
           </div>
-          <p className="font-mono text-slate-100 font-semibold truncate">{hoveredNode.value}</p>
-          <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800 pt-1">
+          <p className="font-mono text-[#F2F2F0] font-semibold truncate">{hoveredNode.value}</p>
+          <div className="text-[10px] text-[#A5A6AA] flex items-center justify-between border-t border-[#2B2C30] pt-1">
             <span>Score: {hoveredNode.threat_score ?? "N/A"}/100</span>
             {hoveredNode.mitre_technique && (
-              <span className="text-purple-400 font-mono">{hoveredNode.mitre_technique}</span>
+              <span className="text-[#F2F2F0] font-mono">{hoveredNode.mitre_technique}</span>
             )}
           </div>
-          <p className="text-[9px] text-cyan-400 italic">Double-click node to pivot graph</p>
+          <p className="text-[9px] text-[#19D5E5] italic">Double-click node to pivot graph</p>
         </div>
       )}
 
       {/* Floating Edge Tooltip */}
       {hoveredEdge && (
-        <div className="absolute bottom-4 right-4 z-20 bg-[#0b1220]/95 border border-purple-500/70 p-3 rounded-xl shadow-xl max-w-sm space-y-1 backdrop-blur text-xs">
+        <div className="absolute bottom-3 right-3 z-20 bg-[#111214]/95 border border-[#2B2C30] p-3 rounded-lg shadow-xl max-w-sm space-y-1 backdrop-blur text-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-purple-400 font-bold">{hoveredEdge.relationship_type}</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-mono">
+            <span className="font-mono text-[#F2F2F0] font-bold">{hoveredEdge.relationship_type}</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#17181B] text-[#A5A6AA] border border-[#2B2C30] font-mono">
               Conf: {hoveredEdge.confidence}%
             </span>
           </div>
           {hoveredEdge.evidence && (
-            <p className="text-[11px] text-slate-300 font-sans italic">{hoveredEdge.evidence}</p>
+            <p className="text-[11px] text-[#A5A6AA] font-sans italic">{hoveredEdge.evidence}</p>
           )}
-          <p className="text-[10px] text-slate-500 font-mono">Source: {hoveredEdge.source || "automated"}</p>
+          <p className="text-[10px] text-[#72747A] font-mono">Source: {hoveredEdge.source || "automated"}</p>
         </div>
       )}
     </div>

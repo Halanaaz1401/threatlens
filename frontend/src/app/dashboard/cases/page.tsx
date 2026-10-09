@@ -233,17 +233,17 @@ export default function CasesDashboardPage() {
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              <span>📁</span> Forensic Case Management
+            <h1 className="text-lg font-bold text-[#F2F2F0] font-editorial-sans">
+              Forensic Case Management
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800">
-              SOC Phase 4E
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
+              SOC INVESTIGATION
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#72747A] font-mono">
             Multi-incident investigation tracking, forensic evidence provenance, investigator notes, and unified timelines.
           </p>
         </div>
@@ -251,13 +251,13 @@ export default function CasesDashboardPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setNewCaseModalOpen(true)}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-cyan-950 transition"
+            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition"
           >
             <span>+</span> Open Investigation Case
           </button>
           <Link
             href="/dashboard/incidents"
-            className="bg-[#0e1628] hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold px-3.5 py-2 rounded-xl text-xs transition"
+            className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#A5A6AA] hover:text-[#F2F2F0] font-medium px-3.5 py-2 rounded-lg text-xs transition font-mono"
           >
             Incidents &rarr;
           </Link>
@@ -265,18 +265,18 @@ export default function CasesDashboardPage() {
       </div>
 
       {/* Filter Cockpit */}
-      <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+      <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[#080d19] border border-slate-800 p-1 rounded-xl overflow-x-auto max-w-full">
+          <div className="flex items-center gap-1 bg-[#090A0C] border border-[#2B2C30] p-1 rounded-lg overflow-x-auto max-w-full">
             {["ALL", "OPEN", "IN_PROGRESS", "CONTAINED", "RESOLVED", "CLOSED"].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+                className={`px-3 py-1 rounded text-xs font-mono font-medium transition ${
                   statusFilter === st
-                    ? "bg-cyan-950 text-cyan-300 border border-cyan-800"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-[#17181B] text-[#F2F2F0] border border-[#3F4046]"
+                    : "text-[#72747A] hover:text-[#F2F2F0]"
                 }`}
               >
                 {st.replace("_", " ")}
@@ -288,7 +288,7 @@ export default function CasesDashboardPage() {
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="bg-[#080d19] border border-slate-800 text-slate-300 rounded-xl px-3 py-2 outline-none font-medium focus:border-cyan-600"
+            className="bg-[#090A0C] border border-[#2B2C30] text-[#A5A6AA] rounded-lg px-3 py-1.5 outline-none font-mono focus:border-[#19D5E5]"
           >
             <option value="ALL">All Severities</option>
             <option value="CRITICAL">Critical</option>
@@ -301,7 +301,7 @@ export default function CasesDashboardPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="bg-[#080d19] border border-slate-800 text-slate-300 rounded-xl px-3 py-2 outline-none font-medium focus:border-cyan-600"
+            className="bg-[#090A0C] border border-[#2B2C30] text-[#A5A6AA] rounded-lg px-3 py-1.5 outline-none font-mono focus:border-[#19D5E5]"
           >
             <option value="ALL">All Priorities</option>
             <option value="P1">P1 - Urgent</option>
@@ -318,7 +318,7 @@ export default function CasesDashboardPage() {
             placeholder="Search cases by title or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#080d19] border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2 text-xs placeholder-slate-500 outline-none focus:border-cyan-600 transition"
+            className="w-full bg-[#090A0C] border border-[#2B2C30] text-[#F2F2F0] rounded-lg px-3.5 py-1.5 text-xs placeholder-[#72747A] outline-none focus:border-[#19D5E5] font-mono transition"
           />
         </div>
       </div>
@@ -849,18 +849,18 @@ export default function CasesDashboardPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#2B2C30]">
                 <button
                   type="button"
                   onClick={() => setNewCaseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-slate-200 text-xs font-semibold"
+                  className="px-4 py-2 rounded-lg bg-[#17181B] border border-[#2B2C30] text-[#A5A6AA] hover:text-[#F2F2F0] text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition disabled:opacity-50"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs transition disabled:opacity-50 shadow-sm"
                 >
                   {createSubmitting ? "Creating..." : "Create Case"}
                 </button>
@@ -873,11 +873,11 @@ export default function CasesDashboardPage() {
       {/* STATUS TRANSITION MODAL */}
       {pendingStatus && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0b1220] border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-sm font-bold text-slate-100">
-              Confirm Transition to <span className="text-cyan-400">{pendingStatus}</span>
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 className="text-sm font-bold text-[#F2F2F0] font-editorial-sans">
+              Confirm Transition to <span className="text-[#19D5E5] font-mono">{pendingStatus}</span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#72747A] font-mono">
               Please provide a transition rationale or forensic justification for this status update.
             </p>
             <textarea
@@ -885,13 +885,13 @@ export default function CasesDashboardPage() {
               placeholder="e.g. Containment verified on host WIN-SRV-01; host isolated."
               value={statusNote}
               onChange={(e) => setStatusNote(e.target.value)}
-              className="w-full bg-[#080d19] border border-slate-700 rounded-xl p-3 text-xs text-slate-200 outline-none"
+              className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-3 text-xs text-[#F2F2F0] outline-none font-mono focus:border-[#19D5E5]"
             />
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setPendingStatus(null)}
-                className="px-3.5 py-1.5 rounded-lg text-xs text-slate-400"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-mono bg-[#17181B] border border-[#2B2C30] text-[#A5A6AA] hover:text-[#F2F2F0]"
               >
                 Cancel
               </button>
@@ -899,7 +899,7 @@ export default function CasesDashboardPage() {
                 type="button"
                 onClick={handleStatusTransition}
                 disabled={statusSubmitting}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-1.5 rounded-lg text-xs disabled:opacity-50"
+                className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-1.5 rounded-lg text-xs disabled:opacity-50 shadow-sm"
               >
                 {statusSubmitting ? "Updating..." : "Confirm Transition"}
               </button>

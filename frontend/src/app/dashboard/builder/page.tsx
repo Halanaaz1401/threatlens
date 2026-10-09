@@ -13,7 +13,6 @@ import {
   safeUpdateWidget,
   safeDeleteWidget,
   safeFetchWidgetData,
-  safeUpdateDashboardLayout,
 } from "@/lib/api";
 import { useRole } from "@/context/RoleContext";
 
@@ -56,7 +55,6 @@ interface CatalogItem {
 }
 
 export default function DashboardBuilderPage() {
-  const { role, persona } = useRole();
   const [dashboards, setDashboards] = useState<DashboardDef[]>([]);
   const [activeDashboard, setActiveDashboard] = useState<DashboardDef | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -271,7 +269,7 @@ export default function DashboardBuilderPage() {
 
     if (isWLoading && !data) {
       return (
-        <div className="flex items-center justify-center h-32 text-slate-500 text-xs">
+        <div className="flex items-center justify-center h-32 text-[#72747A] text-xs font-mono">
           <span className="animate-spin mr-2">🔄</span> Loading real telemetry...
         </div>
       );
@@ -279,7 +277,7 @@ export default function DashboardBuilderPage() {
 
     if (!data) {
       return (
-        <div className="flex items-center justify-center h-32 text-slate-500 text-xs italic">
+        <div className="flex items-center justify-center h-32 text-[#72747A] text-xs italic font-mono">
           No telemetry recorded for this metric
         </div>
       );
@@ -290,29 +288,29 @@ export default function DashboardBuilderPage() {
       return (
         <div className="flex flex-col justify-center h-full py-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black tracking-tight text-white font-mono">
+            <span className="text-3xl font-black tracking-tight text-[#F2F2F0] font-mono">
               {data.formatted || (data.value !== undefined ? data.value.toLocaleString() : "0")}
             </span>
             {data.unit && data.unit !== "mins" && (
-              <span className="text-xs font-semibold text-slate-400">{data.unit}</span>
+              <span className="text-xs font-semibold text-[#A5A6AA]">{data.unit}</span>
             )}
             {data.level && (
               <span
                 className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                   data.level === "CRITICAL"
-                    ? "bg-red-950/80 text-red-400 border border-red-800"
+                    ? "bg-[#17181B] text-red-400 border border-red-900/60"
                     : data.level === "HIGH"
-                    ? "bg-orange-950/80 text-orange-400 border border-orange-800"
-                    : "bg-cyan-950/80 text-cyan-400 border border-cyan-800"
+                    ? "bg-[#17181B] text-orange-400 border border-orange-900/60"
+                    : "bg-[#17181B] text-[#19D5E5] border border-[#19D5E5]/40"
                 }`}
               >
                 {data.level}
               </span>
             )}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-medium">{data.label}</div>
+          <div className="text-[11px] text-[#A5A6AA] mt-1 font-medium">{data.label}</div>
           {data.basis && (
-            <div className="text-[10px] text-slate-500 mt-2 truncate" title={data.basis}>
+            <div className="text-[10px] text-[#72747A] mt-2 truncate font-mono" title={data.basis}>
               ℹ️ {data.basis}
             </div>
           )}
@@ -326,9 +324,9 @@ export default function DashboardBuilderPage() {
       const total = chartData.reduce((acc: number, c: any) => acc + (c.value || 0), 0);
       return (
         <div className="space-y-2 py-1">
-          <div className="text-[11px] text-slate-400 flex justify-between font-mono">
+          <div className="text-[11px] text-[#72747A] flex justify-between font-mono">
             <span>Total Evaluated: {total}</span>
-            <span>Indicators, Alerts, Incidents</span>
+            <span>Telemetry records</span>
           </div>
           <div className="space-y-1.5">
             {chartData.map((item: any, idx: number) => {
@@ -336,15 +334,15 @@ export default function DashboardBuilderPage() {
               return (
                 <div key={idx} className="space-y-0.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-300">{item.name}</span>
-                    <span className="font-mono text-slate-200">
+                    <span className="text-[#A5A6AA]">{item.name}</span>
+                    <span className="font-mono text-[#F2F2F0]">
                       {item.value} ({pct}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, backgroundColor: item.color || "#3b82f6" }}
+                      className="h-full rounded-full transition-all duration-500 bg-[#F2F2F0]"
+                      style={{ width: `${pct}%`, backgroundColor: item.color || "#19D5E5" }}
                     />
                   </div>
                 </div>
@@ -359,21 +357,21 @@ export default function DashboardBuilderPage() {
     if (widget.widget_type === "BAR_CHART" || widget.widget_type === "IOC_TYPE_DISTRIBUTION" || widget.widget_type === "THREAT_INTEL_SOURCES") {
       const items = data.items || data.sources || [];
       if (items.length === 0) {
-        return <div className="text-xs text-slate-500 italic py-4">No categories recorded</div>;
+        return <div className="text-xs text-[#72747A] italic py-4 font-mono">No categories recorded</div>;
       }
       return (
         <div className="space-y-1.5 py-1">
           {items.slice(0, 5).map((it: any, idx: number) => (
             <div key={idx} className="space-y-0.5">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-300 font-mono uppercase truncate max-w-[180px]">
+                <span className="text-[#F2F2F0] font-mono uppercase truncate max-w-[180px]">
                   {it.type || it.source || it.name}
                 </span>
-                <span className="text-slate-400 font-mono">{it.count} ({it.percentage || it.share_percentage || 0}%)</span>
+                <span className="text-[#72747A] font-mono">{it.count} ({it.percentage || it.share_percentage || 0}%)</span>
               </div>
-              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-cyan-500 h-full rounded-full"
+                  className="bg-[#19D5E5] h-full rounded-full"
                   style={{ width: `${Math.min(100, it.percentage || it.share_percentage || 0)}%` }}
                 />
               </div>
@@ -388,24 +386,24 @@ export default function DashboardBuilderPage() {
       const series = data.series || [];
       return (
         <div className="space-y-2 py-1">
-          <div className="flex justify-between text-xs text-slate-400 font-mono">
+          <div className="flex justify-between text-xs text-[#A5A6AA] font-mono">
             <span>Ingests: {data.total_ingests || 0}</span>
             <span className="text-red-400">High Sev: {data.total_high_severity || 0}</span>
           </div>
           {series.length === 0 ? (
-            <div className="text-xs text-slate-500 italic py-4">No trend series recorded</div>
+            <div className="text-xs text-[#72747A] italic py-4 font-mono">No trend series recorded</div>
           ) : (
-            <div className="flex items-end gap-1 h-20 pt-2 border-b border-slate-800">
+            <div className="flex items-end gap-1 h-20 pt-2 border-b border-[#2B2C30]">
               {series.slice(-16).map((b: any, idx: number) => {
                 const maxVal = Math.max(1, ...series.map((s: any) => s.ingests || 0));
                 const h = Math.max(4, Math.round(((b.ingests || 0) / maxVal) * 64));
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center group relative">
                     <div
-                      className="w-full bg-cyan-500/80 rounded-t hover:bg-cyan-400 transition"
+                      className="w-full bg-[#19D5E5]/70 rounded-t hover:bg-[#19D5E5] transition"
                       style={{ height: `${h}px` }}
                     />
-                    <div className="text-[9px] text-slate-500 truncate w-full text-center mt-1">
+                    <div className="text-[9px] text-[#72747A] truncate w-full text-center mt-1 font-mono">
                       {b.label}
                     </div>
                   </div>
@@ -421,17 +419,17 @@ export default function DashboardBuilderPage() {
     if (widget.widget_type === "MITRE_ATTACK") {
       const techs = data.techniques || [];
       if (techs.length === 0) {
-        return <div className="text-xs text-slate-500 italic py-4">No MITRE ATT&CK techniques observed</div>;
+        return <div className="text-xs text-[#72747A] italic py-4 font-mono">No MITRE ATT&CK techniques observed</div>;
       }
       return (
         <div className="space-y-1.5 py-1">
           {techs.slice(0, 4).map((t: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between text-xs bg-slate-900/60 p-1.5 rounded border border-slate-800">
+            <div key={idx} className="flex items-center justify-between text-xs bg-[#090A0C] p-2 rounded border border-[#2B2C30]">
               <div className="flex items-center gap-2 truncate">
-                <span className="font-mono text-purple-400 font-bold text-[11px]">{t.id}</span>
-                <span className="text-slate-300 truncate text-[11px]">{t.name}</span>
+                <span className="font-mono text-[#19D5E5] font-bold text-[11px]">{t.id}</span>
+                <span className="text-[#F2F2F0] truncate text-[11px]">{t.name}</span>
               </div>
-              <span className="text-slate-400 font-mono text-[10px] ml-2 shrink-0">{t.count} hits</span>
+              <span className="text-[#72747A] font-mono text-[10px] ml-2 shrink-0">{t.count} hits</span>
             </div>
           ))}
         </div>
@@ -442,20 +440,20 @@ export default function DashboardBuilderPage() {
     if (widget.widget_type === "TOP_INDICATORS") {
       const iocs = data.indicators || [];
       if (iocs.length === 0) {
-        return <div className="text-xs text-slate-500 italic py-4">No active threat indicators observed</div>;
+        return <div className="text-xs text-[#72747A] italic py-4 font-mono">No active threat indicators observed</div>;
       }
       return (
         <div className="space-y-1 py-1">
           {iocs.map((ioc: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between text-xs bg-slate-900/40 p-1.5 rounded border border-slate-850">
-              <span className="font-mono text-slate-200 truncate max-w-[220px]" title={ioc.value}>
+            <div key={idx} className="flex items-center justify-between text-xs bg-[#090A0C] p-2 rounded border border-[#2B2C30]">
+              <span className="font-mono text-[#F2F2F0] truncate max-w-[220px]" title={ioc.value}>
                 {ioc.value}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 uppercase">{ioc.type}</span>
+                <span className="text-[10px] text-[#72747A] uppercase font-mono">{ioc.type}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold ${
-                    ioc.severity_score >= 80 ? "bg-red-950 text-red-400" : "bg-orange-950 text-orange-400"
+                    ioc.severity_score >= 80 ? "bg-[#17181B] text-red-400 border border-red-900/60" : "bg-[#17181B] text-orange-400 border border-orange-900/60"
                   }`}
                 >
                   {ioc.severity_score}
@@ -471,20 +469,20 @@ export default function DashboardBuilderPage() {
     if (widget.widget_type === "RECENT_CRITICAL_INCIDENTS") {
       const incs = data.incidents || [];
       if (incs.length === 0) {
-        return <div className="text-xs text-slate-500 italic py-4">No critical incidents open</div>;
+        return <div className="text-xs text-[#72747A] italic py-4 font-mono">No critical incidents open</div>;
       }
       return (
         <div className="space-y-1 py-1">
           {incs.map((inc: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between text-xs bg-slate-900/50 p-1.5 rounded border border-slate-800">
-              <span className="text-slate-200 truncate max-w-[200px]" title={inc.title}>
+            <div key={idx} className="flex items-center justify-between text-xs bg-[#090A0C] p-2 rounded border border-[#2B2C30]">
+              <span className="text-[#F2F2F0] truncate max-w-[200px]" title={inc.title}>
                 {inc.title}
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-950 text-red-400 font-mono font-bold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#17181B] text-red-400 font-mono font-bold border border-red-900/60">
                   {inc.severity}
                 </span>
-                <span className="text-[9px] text-slate-400 uppercase font-mono">{inc.status}</span>
+                <span className="text-[9px] text-[#72747A] uppercase font-mono">{inc.status}</span>
               </div>
             </div>
           ))}
@@ -496,14 +494,14 @@ export default function DashboardBuilderPage() {
     if (widget.widget_type === "GEOGRAPHIC_DISTRIBUTION") {
       const countries = data.countries || [];
       if (countries.length === 0) {
-        return <div className="text-xs text-slate-500 italic py-4">No country origin telemetry recorded</div>;
+        return <div className="text-xs text-[#72747A] italic py-4 font-mono">No country origin telemetry recorded</div>;
       }
       return (
         <div className="space-y-1 py-1">
           {countries.slice(0, 5).map((c: any, idx: number) => (
             <div key={idx} className="flex items-center justify-between text-xs p-1">
-              <span className="text-slate-300">{c.country_name} ({c.country_code})</span>
-              <span className="font-mono text-cyan-400">{c.count} ({c.share_percentage}%)</span>
+              <span className="text-[#A5A6AA]">{c.country_name} ({c.country_code})</span>
+              <span className="font-mono text-[#19D5E5]">{c.count} ({c.share_percentage}%)</span>
             </div>
           ))}
         </div>
@@ -512,17 +510,17 @@ export default function DashboardBuilderPage() {
 
     // Fallback JSON inspector
     return (
-      <div className="text-xs text-slate-400 font-mono bg-slate-950 p-2 rounded max-h-32 overflow-auto">
+      <div className="text-xs text-[#A5A6AA] font-mono bg-[#090A0C] border border-[#2B2C30] p-2 rounded max-h-32 overflow-auto">
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen text-slate-100 space-y-6 w-full">
+    <div className="min-h-screen text-[#F2F2F0] space-y-6 w-full pb-12">
       {/* Notifications */}
       {errorMsg && (
-        <div className="bg-red-950/80 border border-red-500/80 text-red-200 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
+        <div className="bg-[#17181B] border border-red-900/60 text-red-300 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
           <span>⚠️ {errorMsg}</span>
           <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-white font-bold ml-4">
             ✕
@@ -530,7 +528,7 @@ export default function DashboardBuilderPage() {
         </div>
       )}
       {successMsg && (
-        <div className="bg-emerald-950/80 border border-emerald-500/80 text-emerald-200 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
+        <div className="bg-[#17181B] border border-emerald-900/60 text-emerald-300 p-3 rounded-lg text-xs flex justify-between items-center shadow-lg">
           <span>✓ {successMsg}</span>
           <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white font-bold ml-4">
             ✕
@@ -539,28 +537,28 @@ export default function DashboardBuilderPage() {
       )}
 
       {/* Top Header & Dashboard Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#2B2C30] pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-black tracking-wide text-white flex items-center gap-2">
-              <span className="text-cyan-400">📊</span> CUSTOM DASHBOARD BUILDER
-            </span>
-            <span className="text-[10px] bg-slate-800 text-cyan-400 border border-slate-700 px-2 py-0.5 rounded font-mono uppercase font-bold">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#F2F2F0] flex items-center gap-2">
+              CUSTOM DASHBOARD BUILDER
+            </h1>
+            <span className="text-[10px] bg-[#17181B] text-[#19D5E5] border border-[#2B2C30] px-2 py-0.5 rounded font-mono uppercase font-bold">
               PRD FR-22 REAL
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#A5A6AA] mt-1">
             Build and arrange modular SOC telemetry widgets powered exclusively by authoritative ThreatLens data.
           </p>
         </div>
 
         {/* Dashboard Select & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {dashboards.length > 0 && (
             <select
               value={activeDashboard?.id || ""}
               onChange={(e) => selectDashboard(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-cyan-500"
+              className="bg-[#111214] border border-[#2B2C30] text-[#F2F2F0] text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#19D5E5]"
             >
               {dashboards.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -572,7 +570,7 @@ export default function DashboardBuilderPage() {
 
           <button
             onClick={() => setShowNewDashboardModal(true)}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition shadow-md flex items-center gap-1.5"
+            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold text-xs px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <span>+</span> New Dashboard
           </button>
@@ -581,14 +579,14 @@ export default function DashboardBuilderPage() {
             <>
               <button
                 onClick={handleDuplicateDashboard}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg transition border border-slate-700"
+                className="bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer"
                 title="Duplicate Dashboard"
               >
                 📋 Duplicate
               </button>
               <button
                 onClick={handleDeleteDashboard}
-                className="bg-red-950/60 hover:bg-red-900/80 text-red-300 text-xs px-3 py-2 rounded-lg transition border border-red-800/80"
+                className="bg-[#17181B] hover:bg-red-950 text-red-400 text-xs px-3 py-2 rounded-lg transition border border-[#2B2C30] cursor-pointer"
                 title="Delete Dashboard"
               >
                 🗑️ Delete
@@ -600,19 +598,19 @@ export default function DashboardBuilderPage() {
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-          <span className="animate-spin mr-3 text-cyan-400 text-xl">🔄</span> Loading custom dashboard cockpit...
+        <div className="flex items-center justify-center h-64 text-[#72747A] text-sm font-mono">
+          <span className="animate-spin mr-3 text-[#19D5E5] text-xl">🔄</span> Loading custom dashboard cockpit...
         </div>
       ) : !activeDashboard ? (
-        <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-xl p-12 text-center max-w-xl mx-auto space-y-4">
-          <div className="text-4xl text-slate-600">📊</div>
-          <h3 className="text-base font-bold text-white">No Dashboards Available</h3>
-          <p className="text-xs text-slate-400">
+        <div className="bg-[#111214] border border-dashed border-[#2B2C30] rounded-xl p-12 text-center max-w-xl mx-auto space-y-4">
+          <div className="text-4xl text-[#72747A]">📊</div>
+          <h3 className="text-base font-bold text-[#F2F2F0]">No Dashboards Available</h3>
+          <p className="text-xs text-[#A5A6AA]">
             Create your first custom SOC dashboard to assemble and arrange live security widgets.
           </p>
           <button
             onClick={() => setShowNewDashboardModal(true)}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-lg"
+            className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm cursor-pointer"
           >
             Create Your First Dashboard
           </button>
@@ -620,53 +618,53 @@ export default function DashboardBuilderPage() {
       ) : (
         <div className="space-y-6">
           {/* Dashboard Meta Bar */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-white tracking-tight">{activeDashboard.name}</h2>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
+                <h2 className="text-lg font-bold text-[#F2F2F0] tracking-tight">{activeDashboard.name}</h2>
+                <span className="text-[10px] bg-[#17181B] text-[#A5A6AA] px-2 py-0.5 rounded font-mono border border-[#2B2C30]">
                   {activeDashboard.visibility}
                 </span>
                 {activeDashboard.is_default && (
-                  <span className="text-[10px] bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded font-mono border border-cyan-800 font-bold">
+                  <span className="text-[10px] bg-[#17181B] text-[#19D5E5] px-2 py-0.5 rounded font-mono border border-[#19D5E5]/40 font-bold">
                     ★ DEFAULT
                   </span>
                 )}
               </div>
               {activeDashboard.description && (
-                <p className="text-xs text-slate-400 mt-0.5">{activeDashboard.description}</p>
+                <p className="text-xs text-[#A5A6AA] mt-0.5">{activeDashboard.description}</p>
               )}
             </div>
 
             {/* Widget Catalog Trigger */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 mr-2 font-mono">
+              <span className="text-xs text-[#72747A] mr-2 font-mono">
                 {activeDashboard.widgets?.length || 0} / 24 Widgets
               </span>
               <div className="relative group">
                 <button
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shadow-md flex items-center gap-2"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] text-xs font-bold px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-2 cursor-pointer"
                 >
                   <span>+</span> Add Widget ▾
                 </button>
                 {/* Catalog Dropdown */}
-                <div className="absolute right-0 top-full mt-1.5 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 z-50 hidden group-hover:block max-h-96 overflow-y-auto">
-                  <div className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">
+                <div className="absolute right-0 top-full mt-1.5 w-72 bg-[#111214] border border-[#2B2C30] rounded-xl shadow-2xl p-2 z-50 hidden group-hover:block max-h-96 overflow-y-auto">
+                  <div className="text-[10px] text-[#72747A] font-bold px-2 py-1 uppercase tracking-wider font-mono">
                     Select Widget from Catalog (18 Available)
                   </div>
                   {catalog.map((cat, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleOpenAddWidget(cat)}
-                      className="w-full text-left p-2 hover:bg-slate-800 rounded-lg text-xs transition flex flex-col gap-0.5"
+                      className="w-full text-left p-2 hover:bg-[#17181B] rounded-lg text-xs transition flex flex-col gap-0.5 cursor-pointer"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white">{cat.title}</span>
-                        <span className="text-[9px] bg-slate-800 text-cyan-400 px-1.5 py-0.2 rounded font-mono">
+                        <span className="font-semibold text-[#F2F2F0]">{cat.title}</span>
+                        <span className="text-[9px] bg-[#090A0C] text-[#19D5E5] px-1.5 py-0.2 rounded font-mono border border-[#2B2C30]">
                           {cat.category}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 line-clamp-1">{cat.description}</span>
+                      <span className="text-[10px] text-[#72747A] line-clamp-1">{cat.description}</span>
                     </button>
                   ))}
                 </div>
@@ -676,10 +674,10 @@ export default function DashboardBuilderPage() {
 
           {/* 12-Column Responsive Grid */}
           {!activeDashboard.widgets || activeDashboard.widgets.length === 0 ? (
-            <div className="bg-slate-900/20 border border-dashed border-slate-800/80 rounded-xl p-16 text-center space-y-3">
-              <div className="text-3xl text-slate-600">🧩</div>
-              <h4 className="text-sm font-bold text-slate-300">Dashboard is Empty</h4>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
+            <div className="bg-[#111214] border border-dashed border-[#2B2C30] rounded-xl p-16 text-center space-y-3">
+              <div className="text-3xl text-[#72747A]">🧩</div>
+              <h4 className="text-sm font-bold text-[#A5A6AA]">Dashboard is Empty</h4>
+              <p className="text-xs text-[#72747A] max-w-md mx-auto">
                 No security widgets have been added to this dashboard yet. Use the “Add Widget” button above to select telemetry components.
               </p>
             </div>
@@ -700,13 +698,13 @@ export default function DashboardBuilderPage() {
                 return (
                   <div
                     key={widget.id}
-                    className={`${colSpanClass} bg-slate-900/80 border border-slate-800 hover:border-slate-700/80 rounded-xl p-4 flex flex-col justify-between shadow-lg transition-all duration-200`}
+                    className={`${colSpanClass} bg-[#111214] border border-[#2B2C30] hover:border-[#72747A] rounded-xl p-4 flex flex-col justify-between shadow-sm transition-all duration-200`}
                   >
                     {/* Widget Card Header */}
-                    <div className="flex items-center justify-between border-b border-slate-800/60 pb-2 mb-3">
+                    <div className="flex items-center justify-between border-b border-[#2B2C30] pb-2 mb-3">
                       <div className="flex items-center gap-2 truncate">
-                        <span className="text-cyan-400 text-xs">◈</span>
-                        <h4 className="text-xs font-bold text-white tracking-wide truncate" title={widget.title}>
+                        <span className="text-[#19D5E5] text-xs">◈</span>
+                        <h4 className="text-xs font-bold text-[#F2F2F0] tracking-wide truncate" title={widget.title}>
                           {widget.title}
                         </h4>
                       </div>
@@ -719,7 +717,7 @@ export default function DashboardBuilderPage() {
                             safeUpdateWidget(activeDashboard.id, widget.id, { time_range: e.target.value });
                             loadSingleWidgetData(activeDashboard.id, widget.id, e.target.value);
                           }}
-                          className="bg-slate-950 border border-slate-800 text-[10px] text-slate-300 rounded px-1.5 py-0.5 font-mono focus:outline-none focus:border-cyan-500"
+                          className="bg-[#090A0C] border border-[#2B2C30] text-[10px] text-[#A5A6AA] rounded px-1.5 py-0.5 font-mono focus:outline-none focus:border-[#19D5E5]"
                         >
                           <option value="24h">24h</option>
                           <option value="7d">7d</option>
@@ -730,7 +728,7 @@ export default function DashboardBuilderPage() {
                         {/* Reload */}
                         <button
                           onClick={() => loadSingleWidgetData(activeDashboard.id, widget.id, widget.time_range)}
-                          className="text-slate-400 hover:text-cyan-400 text-xs p-1 transition"
+                          className="text-[#72747A] hover:text-[#19D5E5] text-xs p-1 transition cursor-pointer"
                           title="Refresh Widget Telemetry"
                         >
                           🔄
@@ -740,7 +738,7 @@ export default function DashboardBuilderPage() {
                         <button
                           onClick={() => handleResizeWidget(widget, -1)}
                           disabled={widget.width <= 3}
-                          className="text-slate-400 hover:text-white disabled:opacity-30 text-[10px] p-0.5"
+                          className="text-[#72747A] hover:text-[#F2F2F0] disabled:opacity-30 text-[10px] p-0.5 cursor-pointer"
                           title="Narrow Widget Width"
                         >
                           ◀
@@ -748,7 +746,7 @@ export default function DashboardBuilderPage() {
                         <button
                           onClick={() => handleResizeWidget(widget, 1)}
                           disabled={widget.width >= 12}
-                          className="text-slate-400 hover:text-white disabled:opacity-30 text-[10px] p-0.5"
+                          className="text-[#72747A] hover:text-[#F2F2F0] disabled:opacity-30 text-[10px] p-0.5 cursor-pointer"
                           title="Widen Widget Width"
                         >
                           ▶
@@ -757,7 +755,7 @@ export default function DashboardBuilderPage() {
                         {/* Delete */}
                         <button
                           onClick={() => handleDeleteWidget(widget.id)}
-                          className="text-slate-500 hover:text-red-400 text-xs p-1 transition"
+                          className="text-[#72747A] hover:text-red-400 text-xs p-1 transition cursor-pointer"
                           title="Remove Widget"
                         >
                           ✕
@@ -778,12 +776,12 @@ export default function DashboardBuilderPage() {
       {/* Modal: New Dashboard */}
       {showNewDashboardModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-white text-sm">Create New Dashboard</h3>
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[#2B2C30] pb-3">
+              <h3 className="font-bold text-[#F2F2F0] text-sm">Create New Dashboard</h3>
               <button
                 onClick={() => setShowNewDashboardModal(false)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="text-[#72747A] hover:text-[#F2F2F0] text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -791,7 +789,7 @@ export default function DashboardBuilderPage() {
 
             <form onSubmit={handleCreateDashboard} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                   Dashboard Name *
                 </label>
                 <input
@@ -800,12 +798,12 @@ export default function DashboardBuilderPage() {
                   value={newDashboardName}
                   onChange={(e) => setNewDashboardName(e.target.value)}
                   placeholder="e.g. CISO Weekly Posture Cockpit"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                   Description
                 </label>
                 <textarea
@@ -813,35 +811,35 @@ export default function DashboardBuilderPage() {
                   value={newDashboardDesc}
                   onChange={(e) => setNewDashboardDesc(e.target.value)}
                   placeholder="Brief summary of this dashboard's operational objective..."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                   Visibility
                 </label>
                 <select
                   value={newDashboardVisibility}
                   onChange={(e) => setNewDashboardVisibility(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5] font-mono"
                 >
-                  <option value="PRIVATE">PRIVATE (Only You & Admins)</option>
+                  <option value="PRIVATE">PRIVATE (Only You &amp; Admins)</option>
                   <option value="SHARED">SHARED (All Security Analysts)</option>
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#2B2C30]">
                 <button
                   type="button"
                   onClick={() => setShowNewDashboardModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-xs"
+                  className="bg-[#17181B] hover:bg-[#202125] text-[#A5A6AA] px-4 py-2 rounded-lg text-xs border border-[#2B2C30] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-lg text-xs shadow-md"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs shadow-sm cursor-pointer"
                 >
                   Create Dashboard
                 </button>
@@ -854,17 +852,17 @@ export default function DashboardBuilderPage() {
       {/* Modal: Add Widget from Catalog */}
       {showAddWidgetModal && selectedCatalogItem && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[#2B2C30] pb-3">
               <div>
-                <h3 className="font-bold text-white text-sm">Configure Widget</h3>
-                <span className="text-[10px] text-cyan-400 font-mono">
+                <h3 className="font-bold text-[#F2F2F0] text-sm">Configure Widget</h3>
+                <span className="text-[10px] text-[#19D5E5] font-mono">
                   {selectedCatalogItem.category} • {selectedCatalogItem.data_source}
                 </span>
               </div>
               <button
                 onClick={() => setShowAddWidgetModal(false)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="text-[#72747A] hover:text-[#F2F2F0] text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -872,7 +870,7 @@ export default function DashboardBuilderPage() {
 
             <form onSubmit={handleSaveWidget} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                   Widget Display Title *
                 </label>
                 <input
@@ -880,18 +878,18 @@ export default function DashboardBuilderPage() {
                   required
                   value={newWidgetTitle}
                   onChange={(e) => setNewWidgetTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                   Metric
                 </label>
                 <select
                   value={newWidgetMetric}
                   onChange={(e) => setNewWidgetMetric(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5] font-mono"
                 >
                   {selectedCatalogItem.allowed_metrics.map((m, idx) => (
                     <option key={idx} value={m}>
@@ -903,13 +901,13 @@ export default function DashboardBuilderPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                     Time Window
                   </label>
                   <select
                     value={newWidgetTimeRange}
                     onChange={(e) => setNewWidgetTimeRange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5] font-mono"
                   >
                     <option value="24h">Last 24 Hours</option>
                     <option value="7d">Last 7 Days</option>
@@ -919,13 +917,13 @@ export default function DashboardBuilderPage() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-[#A5A6AA] block mb-1">
                     Grid Columns (out of 12)
                   </label>
                   <select
                     value={newWidgetWidth}
                     onChange={(e) => setNewWidgetWidth(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg px-3 py-2 text-xs text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5] font-mono"
                   >
                     <option value={3}>3 Columns (1/4 Width)</option>
                     <option value={4}>4 Columns (1/3 Width)</option>
@@ -935,24 +933,24 @@ export default function DashboardBuilderPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                <div className="font-semibold text-slate-300">Widget Provenance & Security:</div>
-                <div>• Guaranteed zero mock data; resolves directly against PostgreSQL & Redis.</div>
+              <div className="bg-[#090A0C] p-3 rounded-lg border border-[#2B2C30] text-[11px] text-[#A5A6AA] space-y-1">
+                <div className="font-semibold text-[#F2F2F0]">Widget Provenance &amp; Security:</div>
+                <div>• Guaranteed zero mock data; resolves directly against PostgreSQL &amp; Redis.</div>
                 <div>• Real-time updates with server-side validation.</div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#2B2C30]">
                 <button
                   type="button"
                   onClick={() => setShowAddWidgetModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-xs"
+                  className="bg-[#17181B] hover:bg-[#202125] text-[#A5A6AA] px-4 py-2 rounded-lg text-xs border border-[#2B2C30] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={widgetSubmitting}
-                  className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg text-xs shadow-md"
+                  className="bg-[#F2F2F0] hover:bg-white disabled:opacity-50 text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs shadow-sm cursor-pointer"
                 >
                   {widgetSubmitting ? "Adding..." : "Add to Dashboard"}
                 </button>

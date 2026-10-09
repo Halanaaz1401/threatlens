@@ -85,7 +85,7 @@ export function GlobalHeatmap() {
                 lng: coords.lng,
                 count: c.count,
                 severity: c.count > 10 ? "Critical" : c.count > 3 ? "High" : "Medium",
-                color: c.count > 10 ? "#ef4444" : c.count > 3 ? "#f97316" : "#eab308",
+                color: c.count > 10 ? "#f87171" : c.count > 3 ? "#fb923c" : "#fbbf24",
               });
             }
           });
@@ -112,7 +112,7 @@ export function GlobalHeatmap() {
 
   if (!isClient) {
     return (
-      <div className="h-[320px] w-full bg-[#080d19] rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 text-xs font-mono">
+      <div className="h-[320px] w-full bg-[#090A0C] rounded-xl border border-[#2B2C30] flex items-center justify-center text-[#72747A] text-xs font-mono">
         Initializing Live Geo-Telemetry Map...
       </div>
     );
@@ -123,41 +123,41 @@ export function GlobalHeatmap() {
       {/* Heatmap Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-cyan-950/90 border border-cyan-500 flex items-center justify-center text-[10px] text-cyan-400 font-bold">
+          <span className="w-5 h-5 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] text-[#19D5E5] font-bold font-mono">
             ((o))
           </span>
-          <h2 className="text-sm font-semibold text-slate-200">
+          <h2 className="text-sm font-semibold text-[#F2F2F0] font-mono">
             Global Threat Heatmap &amp; Origin Telemetry
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-cyan-400 font-medium">
-          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+        <div className="flex items-center gap-2 text-[11px] text-[#19D5E5] font-mono font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#19D5E5]" />
           <span>Real-time Analytics API</span>
         </div>
       </div>
 
       {/* Map Canvas or Honest Empty State */}
       {loading ? (
-        <div className="h-[320px] w-full bg-[#080d19] rounded-lg border border-slate-800 flex items-center justify-center text-slate-500 text-xs font-mono animate-pulse">
+        <div className="h-[320px] w-full bg-[#090A0C] rounded-xl border border-[#2B2C30] flex items-center justify-center text-[#72747A] text-xs font-mono animate-pulse">
           Loading geographic telemetry from database...
         </div>
       ) : !hasData || threatLocations.length === 0 ? (
-        <div className="h-[320px] w-full bg-[#080d19] rounded-lg border border-slate-800 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-lg mb-2">
+        <div className="h-[320px] w-full bg-[#090A0C] rounded-xl border border-[#2B2C30] flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-10 h-10 rounded-full bg-[#111214] border border-[#2B2C30] flex items-center justify-center text-[#72747A] text-lg mb-2">
             🌍
           </div>
-          <h3 className="text-xs font-semibold text-slate-300">No Geographic Threat Telemetry Available</h3>
-          <p className="text-[11px] text-slate-500 mt-1 max-w-md">
+          <h3 className="text-xs font-semibold text-[#A5A6AA]">No Geographic Threat Telemetry Available</h3>
+          <p className="text-[11px] text-[#72747A] mt-1 max-w-md">
             No indicators currently possess geolocation attribution records. ThreatLens strictly displays backend-verified geographic intelligence and does not synthesize speculative attack locations.
           </p>
         </div>
       ) : (
-        <div className="h-[320px] w-full rounded-lg overflow-hidden border border-slate-800 relative z-0">
+        <div className="h-[320px] w-full rounded-xl overflow-hidden border border-[#2B2C30] relative z-0">
           <MapContainer
             center={[25, 20]}
             zoom={2}
             scrollWheelZoom={false}
-            className="h-full w-full bg-[#080d19]"
+            className="h-full w-full bg-[#090A0C]"
           >
             <TileLayer
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -167,19 +167,19 @@ export function GlobalHeatmap() {
               <CircleMarker
                 key={point.id}
                 center={[point.lat, point.lng]}
-                radius={point.severity === "Critical" ? 16 : point.severity === "High" ? 12 : 8}
+                radius={point.severity === "Critical" ? 14 : point.severity === "High" ? 10 : 7}
                 pathOptions={{
                   color: point.color,
                   fillColor: point.color,
-                  fillOpacity: 0.5,
-                  weight: 2,
+                  fillOpacity: 0.6,
+                  weight: 1.5,
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                  <div className="bg-[#0b1220] border border-slate-700 p-2 rounded text-slate-200 text-xs shadow-lg">
-                    <p className="font-bold text-slate-100">{point.name}</p>
-                    <p className="text-[11px] text-slate-400">Events: {point.count.toLocaleString()}</p>
-                    <p className="text-[10px] font-mono text-cyan-400 uppercase">
+                  <div className="bg-[#111214] border border-[#2B2C30] p-2 rounded text-[#F2F2F0] text-xs shadow-lg">
+                    <p className="font-bold text-[#F2F2F0]">{point.name}</p>
+                    <p className="text-[11px] text-[#A5A6AA]">Events: {point.count.toLocaleString()}</p>
+                    <p className="text-[10px] font-mono text-[#19D5E5] uppercase">
                       Severity: {point.severity}
                     </p>
                   </div>

@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRole } from "@/context/RoleContext";
 import { safeFetchAnalyticsKPIs } from "@/lib/api";
+import ThreatLensOrbital from "@/components/ThreatLensOrbital";
 
 export default function HomePage() {
   const { role, serverRole, persona, user, isAuthenticated } = useRole();
-  const [activeTab, setActiveTab] = useState<"all" | "triage" | "hunting" | "executive">("all");
   const [kpis, setKpis] = useState<any>(null);
   const [loadingKpis, setLoadingKpis] = useState(true);
 
@@ -37,29 +37,25 @@ export default function HomePage() {
       label: "Indexed Indicators (IOCs)",
       value: loadingKpis ? "..." : (totalIocs ? totalIocs.toLocaleString() : "0"),
       change: recentIocs ? `+${recentIocs} in window` : "Live Pipeline",
-      color: "text-cyan-400",
-      glow: "border-cyan-500/20 bg-cyan-950/20",
+      meta: "STIX 2.1 Ingested",
     },
     {
       label: "Active Ingestion Feeds",
       value: loadingKpis ? "..." : `${activeFeeds} Feeds`,
       change: "Enterprise Pipeline",
-      color: "text-emerald-400",
-      glow: "border-emerald-500/20 bg-emerald-950/20",
+      meta: "TAXII 2.1 Online",
     },
     {
       label: "Critical SEV-1 Alerts",
       value: loadingKpis ? "..." : String(critAlerts).padStart(2, "0"),
       change: critAlerts > 0 ? "Active Investigation" : "Operational Normal",
-      color: "text-amber-400",
-      glow: "border-amber-500/20 bg-amber-950/20",
+      meta: "Correlated Incidents",
     },
     {
       label: "Mean Time to Detect (MTTD)",
       value: loadingKpis ? "..." : mttdStr,
       change: "Database Calculated",
-      color: "text-purple-400",
-      glow: "border-purple-500/20 bg-purple-950/20",
+      meta: "Real-time Telemetry",
     },
   ];
 
@@ -72,8 +68,6 @@ export default function HomePage() {
       icon: "🛡️",
       tag: "Alert Triage",
       desc: "Live stream ingestion, automated single-click IOC enrichment with VirusTotal/AbuseIPDB, and correlation scoring.",
-      accent: "from-cyan-500/10 via-[#0b1324] to-[#080d1a] border-cyan-500/30 hover:border-cyan-400",
-      badge: "border-cyan-500/40 text-cyan-300 bg-cyan-950/50",
     },
     {
       name: "Daniel Okafor",
@@ -83,8 +77,6 @@ export default function HomePage() {
       icon: "⚠️",
       tag: "Incident Operations",
       desc: "Containment checklist tracking, chronological forensic audit timelines, and direct evidence-backed IR dossier exports.",
-      accent: "from-orange-500/10 via-[#0b1324] to-[#080d1a] border-orange-500/30 hover:border-orange-400",
-      badge: "border-orange-500/40 text-orange-300 bg-orange-950/50",
     },
     {
       name: "Mei Lin Tan",
@@ -94,8 +86,6 @@ export default function HomePage() {
       icon: "🎯",
       tag: "Adversary Pivoting",
       desc: "Elasticsearch full-text querying, infrastructure node pivoting, MITRE ATT&CK overlays, and reusable hunting rule templates.",
-      accent: "from-purple-500/10 via-[#0b1324] to-[#080d1a] border-purple-500/30 hover:border-purple-400",
-      badge: "border-purple-500/40 text-purple-300 bg-purple-950/50",
     },
     {
       name: "Rachel Adeyemi",
@@ -105,32 +95,30 @@ export default function HomePage() {
       icon: "📈",
       tag: "Risk & Governance",
       desc: "Enterprise risk posture overview, MTTD/MTTR operational health benchmarks, and automated board-ready reporting.",
-      accent: "from-emerald-500/10 via-[#0b1324] to-[#080d1a] border-emerald-500/30 hover:border-emerald-400",
-      badge: "border-emerald-500/40 text-emerald-300 bg-emerald-950/50",
     },
   ];
 
   const features = [
     {
-      icon: "⚡",
+      code: "ENG-01",
       title: "Real-Time STIX / TAXII Feed Ingestion",
       desc: "Continuous automated aggregation from AlienVault OTX, URLhaus, and Feodo Tracker with sub-second IOC correlation.",
       category: "Ingestion Engine",
     },
     {
-      icon: "🌐",
+      code: "ENG-02",
       title: "Adversary Infrastructure Pivoting",
       desc: "Graph-based correlation linking external threat indicators, command & control (C2) domains, and observed network telemetry.",
-      category: "Threat Hunter",
+      category: "Adversary Graph",
     },
     {
-      icon: "📑",
+      code: "ENG-03",
       title: "Defensible Forensic Incident Dossiers",
       desc: "Immutable incident evidence audit logs with single-click exportable post-incident forensic briefs.",
-      category: "IR Lead",
+      category: "Forensic Case Management",
     },
     {
-      icon: "📊",
+      code: "ENG-04",
       title: "Executive Posture & Exposure Analytics",
       desc: "High-level risk velocity tracking, team throughput monitoring, and real-time MITRE matrix coverage oversight.",
       category: "CISO Oversight",
@@ -138,85 +126,143 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* Hero Section */}
-      <section className="relative pt-10 pb-6 text-center space-y-6 max-w-5xl mx-auto">
-        {/* Glow Radial Backdrop */}
-        <div className="absolute inset-0 -top-10 flex items-center justify-center -z-10 pointer-events-none">
-          <div className="w-[500px] h-[250px] bg-cyan-600/10 blur-[120px] rounded-full" />
-          <div className="w-[400px] h-[200px] bg-purple-600/10 blur-[140px] rounded-full" />
-        </div>
+    <div className="space-y-12 sm:space-y-16 pb-16">
+      
+      {/* =========================================================================
+          HERO COMPOSITION — INSPIRED DIRECTLY BY THE REFERENCE DESIGN
+         ========================================================================= */}
+      <section className="relative p-2 sm:p-3 rounded-2xl hatch-strip border border-[#2B2C30]">
+        <div className="bg-[#090A0C] border border-[#2B2C30] rounded-xl grid grid-cols-1 lg:grid-cols-12 overflow-hidden shadow-2xl">
+          
+          {/* Left Column: Editorial Headline & Actions */}
+          <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between space-y-8">
+            <div className="space-y-6">
+              
+              {/* Eyebrow Label */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#111214] border border-[#2B2C30] text-[10px] font-mono tracking-wider text-[#A5A6AA]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5] animate-pulse" />
+                <span>CYBER THREAT INTELLIGENCE &bull; PLATFORM</span>
+              </div>
 
-        {/* Live Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#08101e] border border-cyan-500/30 text-cyan-300 text-xs font-mono font-semibold shadow-inner shadow-cyan-950/40">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-          <span>CYBER THREAT INTELLIGENCE &amp; SOC INCIDENT PLATFORM</span>
-        </div>
+              {/* Editorial Dual-Font Headline (Matches Reference Typography) */}
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-[#F2F2F0] leading-[1.08]">
+                <span className="font-editorial-sans font-bold block">
+                  Detect Earlier With
+                </span>
+                <span className="font-editorial-serif text-slate-300 block mt-1">
+                  Unified Threat Intelligence
+                </span>
+              </h1>
 
-        {/* Main Title */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-100 tracking-tight leading-[1.15]">
-          Detect Earlier. Investigate Deeper. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-purple-400">
-            Orchestrate Incident Containment.
-          </span>
-        </h1>
+              {/* Subtitle */}
+              <p className="text-xs sm:text-sm text-[#A5A6AA] max-w-xl leading-relaxed">
+                ThreatLens unifies multi-source STIX/TAXII threat feeds, adversary graph analytics, and automated forensic timelines into an operational cockpit built for Tier-2 SOC analysts, Threat Hunters, and CISOs.
+              </p>
 
-        {/* Subtitle */}
-        <p className="text-sm sm:text-base text-slate-400 max-w-3xl mx-auto leading-relaxed">
-          ThreatLens unifies multi-source STIX/TAXII threat feeds, adversary graph analytics, and automated forensic timelines into an operational cockpit built for Tier-2 SOC analysts, Threat Hunters, and CISOs.
-        </p>
+              {/* Action Buttons (Matches Reference Primary & Secondary Buttons) */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link
+                  href="/dashboard/analyst"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-5 py-3 rounded-lg text-xs transition duration-150 flex items-center gap-2 shadow-sm"
+                >
+                  <span>Launch SOC Analyst Queue</span>
+                  <span className="text-sm font-bold">&rarr;</span>
+                </Link>
 
-        {/* CTA Button Group */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
-          <Link
-            href="/dashboard/analyst"
-            className="bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-400 hover:to-sky-500 text-slate-950 font-bold px-6 py-3.5 rounded-xl text-xs transition-all duration-200 shadow-lg shadow-cyan-500/25 hover:scale-[1.02] flex items-center gap-2"
-          >
-            <span>🛡️</span> Launch SOC Analyst Queue
-          </Link>
-          <Link
-            href="/dashboard/hunting"
-            className="bg-[#0b1324] hover:bg-[#111c35] border border-slate-700/80 text-slate-200 font-semibold px-6 py-3.5 rounded-xl text-xs transition-all duration-200 hover:scale-[1.02] flex items-center gap-2 hover:border-slate-600"
-          >
-            <span>🎯</span> Query Threat Hunt Matrix
-          </Link>
-          <Link
-            href="/dashboard/incidents"
-            className="bg-[#0b1324] hover:bg-[#111c35] border border-slate-700/80 text-slate-200 font-semibold px-6 py-3.5 rounded-xl text-xs transition-all duration-200 hover:scale-[1.02] flex items-center gap-2 hover:border-slate-600"
-          >
-            <span>⚠️</span> Active Incident Operations
-          </Link>
-        </div>
+                <Link
+                  href="/dashboard/hunting"
+                  className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] hover:border-[#3F4046] text-[#F2F2F0] font-medium px-4 py-3 rounded-lg text-xs transition flex items-center gap-2"
+                >
+                  <span className="text-[10px] text-[#A5A6AA]">▶</span>
+                  <span>Query Threat Hunt Matrix</span>
+                </Link>
 
-        {/* Current Active Session Info */}
-        <div className="pt-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0b1220]/90 border border-slate-800 text-[11px] font-mono text-slate-400 shadow-inner">
-            <span>Identity:</span>
-            <span className="text-slate-100 font-bold">{user?.full_name || persona?.name || "Operator"}</span>
-            <span className="text-slate-600">&bull;</span>
-            <span className="text-cyan-400 font-semibold uppercase">{serverRole || role}</span>
-            {isAuthenticated ? (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" title="Authenticated session" />
-            ) : (
-              <Link href="/login" className="text-cyan-400 underline font-bold ml-1 hover:text-cyan-300">
-                (Sign In)
-              </Link>
-            )}
+                <Link
+                  href="/dashboard/incidents"
+                  className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] hover:border-[#3F4046] text-[#F2F2F0] font-medium px-4 py-3 rounded-lg text-xs transition flex items-center gap-2"
+                >
+                  <span className="text-[10px] text-[#A5A6AA]">▶</span>
+                  <span>Active Incident Operations</span>
+                </Link>
+              </div>
+
+            </div>
+
+            {/* Operator Verification Row (Matches Avatar Endorsement in Reference) */}
+            <div className="pt-6 border-t border-[#202125] flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  <div className="w-7 h-7 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] font-mono text-[#F2F2F0]">
+                    P
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] font-mono text-[#F2F2F0]">
+                    D
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] font-mono text-[#F2F2F0]">
+                    M
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-[#17181B] border border-[#2B2C30] flex items-center justify-center text-[10px] font-mono text-[#F2F2F0]">
+                    R
+                  </div>
+                </div>
+                <div className="text-[11px] text-[#72747A] font-mono">
+                  Operational with <strong className="text-[#F2F2F0] font-semibold">Tier-2 SOC</strong> escalation matrix
+                </div>
+              </div>
+
+              {/* Active Identity Pill */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#111214] border border-[#2B2C30] text-[11px] font-mono text-[#72747A]">
+                <span>Operator:</span>
+                <span className="text-[#F2F2F0] font-medium">{user?.full_name || persona?.name || "Operator"}</span>
+                <span>&bull;</span>
+                <span className="text-[#19D5E5] font-semibold uppercase">{serverRole || role}</span>
+                {isAuthenticated ? (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#19D5E5]" title="Authenticated" />
+                ) : (
+                  <Link href="/login" className="text-[#19D5E5] underline font-medium ml-1">
+                    (Sign In)
+                  </Link>
+                )}
+              </div>
+            </div>
+
           </div>
+
+          {/* Right Column: Interactive 3D Orbital Threat Topology Visual */}
+          <div className="lg:col-span-5 p-4 sm:p-6 lg:p-8 bg-[#090A0C] border-t lg:border-t-0 lg:border-l border-[#2B2C30] flex items-center justify-center">
+            <ThreatLensOrbital
+              seed="00042"
+              tag="CTI &bull; 3D"
+              className="h-[360px] sm:h-[440px] w-full"
+            />
+          </div>
+
         </div>
       </section>
 
-      {/* Real-time Telemetry Metrics */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
+      {/* =========================================================================
+          REAL-TIME TELEMETRY METRICS GRID (PRESERVING EXACT KEYS FOR TESTS)
+         ========================================================================= */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-7xl mx-auto">
         {telemetryStats.map((stat, i) => (
           <div
             key={i}
-            className={`border rounded-2xl p-4 sm:p-5 backdrop-blur-sm transition-all duration-200 hover:border-slate-700 ${stat.glow}`}
+            className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-4 sm:p-5 transition-all duration-150 flex flex-col justify-between space-y-3"
           >
-            <span className="text-xs text-slate-400 font-medium block truncate">{stat.label}</span>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className={`text-2xl sm:text-3xl font-black ${stat.color}`}>{stat.value}</span>
-              <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono text-[#72747A] uppercase tracking-wider block truncate">
+                {stat.label}
+              </span>
+              <span className="text-[9px] font-mono text-[#A5A6AA] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
+                {stat.meta}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-2xl sm:text-3xl font-bold font-editorial-sans text-[#F2F2F0]">
+                {stat.value}
+              </span>
+              <span className="text-[10px] font-mono text-[#A5A6AA] bg-[#17181B] px-2 py-0.5 rounded border border-[#2B2C30]">
                 {stat.change}
               </span>
             </div>
@@ -224,44 +270,46 @@ export default function HomePage() {
         ))}
       </section>
 
-      {/* Role-Specific Workspaces (Personas from PRD) */}
-      <section className="space-y-6 max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-slate-800/80 pb-4">
+      {/* =========================================================================
+          PURPOSE-BUILT WORKSPACES (PERSONAS)
+         ========================================================================= */}
+      <section className="space-y-6 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-[#2B2C30] pb-4">
           <div>
-            <span className="text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider">
+            <span className="text-[10px] font-mono font-semibold text-[#19D5E5] uppercase tracking-wider">
               Role-Tailored SOC Operations
             </span>
-            <h2 className="text-2xl font-bold text-slate-100 mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#F2F2F0] mt-1 font-editorial-sans">
               Purpose-Built Command Views
             </h2>
           </div>
-          <p className="text-xs text-slate-400 max-w-md text-left md:text-right">
+          <p className="text-xs text-[#72747A] max-w-md font-mono text-left md:text-right">
             Dedicated operational workspaces matching the escalation chain from triage to board reporting.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {personaWorkflows.map((item, idx) => (
             <div
               key={idx}
-              className={`bg-gradient-to-b ${item.accent} border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 shadow-xl shadow-black/40 group`}
+              className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-xl p-2 rounded-lg bg-[#17181B] border border-[#2B2C30]">
                     {item.icon}
                   </span>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${item.badge}`}>
+                  <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded bg-[#17181B] border border-[#2B2C30] text-[#A5A6AA]">
                     {item.tag}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-100 group-hover:text-white transition">
+                  <h3 className="text-sm font-semibold text-[#F2F2F0] group-hover:text-white transition">
                     {item.name}
                   </h3>
-                  <p className="text-[11px] text-cyan-400/80 font-mono">{item.role}</p>
-                  <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
+                  <p className="text-[11px] text-[#19D5E5] font-mono">{item.role}</p>
+                  <p className="text-xs text-[#A5A6AA] mt-2.5 leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -269,73 +317,57 @@ export default function HomePage() {
 
               <Link
                 href={item.href}
-                className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-[#0a101f] hover:bg-slate-800/90 text-slate-200 border border-slate-700/80 py-2.5 px-3.5 rounded-xl text-xs font-bold transition-all shadow-sm"
+                className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] border border-[#2B2C30] hover:border-[#3F4046] py-2 px-3 rounded-lg text-xs font-medium transition"
               >
                 <span>{item.action}</span>
-                <span>&rarr;</span>
+                <span className="text-xs font-mono">&rarr;</span>
               </Link>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Platform Capabilities Grid */}
-      <section className="space-y-6 max-w-6xl mx-auto">
-        <div className="text-center space-y-1">
-          <span className="text-xs font-mono font-semibold text-purple-400 uppercase tracking-wider">
-            Architecture Highlights
+      {/* =========================================================================
+          PLATFORM ARCHITECTURE HIGHLIGHTS
+         ========================================================================= */}
+      <section className="space-y-6 max-w-7xl mx-auto">
+        <div className="border-b border-[#2B2C30] pb-4 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-mono font-semibold text-[#72747A] uppercase tracking-wider">
+              Architecture Modules
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#F2F2F0] mt-1 font-editorial-sans">
+              End-to-End Threat Intelligence Engine
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono text-[#72747A] hidden sm:inline">
+            CORE-INFRASTRUCTURE &bull; V1.0
           </span>
-          <h2 className="text-2xl font-bold text-slate-100">End-to-End Threat Intelligence Engine</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {features.map((feat, i) => (
             <div
               key={i}
-              className="bg-[#080e1b]/80 border border-slate-800/80 hover:border-slate-700/90 rounded-2xl p-6 transition-all duration-200 flex items-start gap-4 shadow-lg shadow-black/20"
+              className="bg-[#111214] border border-[#2B2C30] hover:border-[#3F4046] rounded-xl p-5 transition-all duration-150 flex items-start gap-4"
             >
-              <div className="text-2xl p-3 rounded-xl bg-slate-900/90 border border-slate-800 shrink-0">
-                {feat.icon}
-              </div>
-              <div className="space-y-1.5">
+              <span className="text-[10px] font-mono text-[#72747A] bg-[#17181B] border border-[#2B2C30] px-2 py-1 rounded shrink-0">
+                {feat.code}
+              </span>
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-100">{feat.title}</h3>
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                  <h3 className="text-xs sm:text-sm font-semibold text-[#F2F2F0]">{feat.title}</h3>
+                  <span className="text-[9px] font-mono text-[#A5A6AA] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
                     {feat.category}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">{feat.desc}</p>
+                <p className="text-xs text-[#A5A6AA] leading-relaxed">{feat.desc}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Quick Launch Operations Bar */}
-      <section className="max-w-6xl mx-auto bg-gradient-to-r from-cyan-950/40 via-[#0b1324] to-purple-950/40 border border-cyan-500/20 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-        <div className="space-y-1 text-center md:text-left">
-          <h3 className="text-base font-bold text-slate-100 flex items-center justify-center md:justify-start gap-2">
-            <span>🛡️</span> Ready to run live threat correlation?
-          </h3>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Switch your role from the top navigation bar to test role-based access control and inspect persona-specific telemetry views.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link
-            href="/dashboard/analyst"
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-md shadow-cyan-500/20"
-          >
-            Enter Analyst Console
-          </Link>
-          <Link
-            href="/dashboard/executive"
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-5 py-2.5 rounded-xl text-xs transition border border-slate-700"
-          >
-            CISO Executive View
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

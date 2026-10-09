@@ -44,7 +44,7 @@ const ROUTING_DESTINATIONS: Record<string, { label: string; owner: string; chann
 };
 
 export function DetectionRulesManager() {
-  const { role, persona } = useRole();
+  const { role } = useRole();
   const [rules, setRules] = useState<DetectionRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRule, setSelectedRule] = useState<DetectionRule | null>(null);
@@ -109,15 +109,15 @@ export function DetectionRulesManager() {
     try {
       if (rule.enabled) {
         await safeDisableDetectionRule(rule.id);
-        setActionMessage(`Rule "${rule.name}" disabled.`);
+        setActionMessage(`Disabled rule: ${rule.name}`);
       } else {
         await safeEnableDetectionRule(rule.id);
-        setActionMessage(`Rule "${rule.name}" enabled.`);
+        setActionMessage(`Enabled rule: ${rule.name}`);
       }
       await loadRules();
-      setTimeout(() => setActionMessage(null), 4000);
-    } catch (err: any) {
-      setActionMessage(`Operation failed: ${err.message || "Unknown error"}`);
+      setTimeout(() => setActionMessage(null), 3000);
+    } catch {
+      setActionMessage("Failed to toggle rule state.");
     }
   };
 
@@ -131,66 +131,51 @@ export function DetectionRulesManager() {
         setSelectedRule(null);
       }
       await loadRules();
-      setTimeout(() => setActionMessage(null), 4000);
-    } catch (err: any) {
-      setActionMessage(`Delete failed: ${err.message || "Unknown error"}`);
+      setTimeout(() => setActionMessage(null), 3000);
+    } catch {
+      setActionMessage("Failed to delete rule.");
     }
   };
 
   const handleAddCondition = () => {
-    setNewRule((prev) => ({
-      ...prev,
-      conditions: [...prev.conditions, { field: "type", operator: "==", value: "ip" }],
-    }));
+    setNewRule({
+      ...newRule,
+      conditions: [...newRule.conditions, { field: "type", operator: "==", value: "" }],
+    });
   };
 
   const handleRemoveCondition = (index: number) => {
-    setNewRule((prev) => ({
-      ...prev,
-      conditions: prev.conditions.filter((_, i) => i !== index),
-    }));
+    if (newRule.conditions.length <= 1) return;
+    const next = [...newRule.conditions];
+    next.splice(index, 1);
+    setNewRule({ ...newRule, conditions: next });
   };
 
-  const handleConditionChange = (index: number, key: string, val: string) => {
-    setNewRule((prev) => {
-      const updated = [...prev.conditions];
-      updated[index] = { ...updated[index], [key]: val };
-      return { ...prev, conditions: updated };
-    });
+  const handleConditionChange = (index: number, key: keyof ConditionItem, val: any) => {
+    const next = [...newRule.conditions];
+    next[index] = { ...next[index], [key]: val };
+    setNewRule({ ...newRule, conditions: next });
   };
 
   const handleCreateRuleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdminOrEng) return;
     try {
-      // Coerce numeric values where appropriate
       const parsedConditions = newRule.conditions.map((c) => {
-        let parsedVal: any = c.value;
-        if (["severity_score", "threat_score", "confidence"].includes(c.field)) {
-          parsedVal = Number(c.value) || 0;
+        let v: any = c.value;
+        if (!isNaN(Number(v)) && v.trim() !== "") {
+          v = Number(v);
         }
-        return {
-          field: c.field,
-          operator: c.operator,
-          value: parsedVal,
-        };
+        return { ...c, value: v };
       });
 
-      const payload = {
-        name: newRule.name.trim(),
-        description: newRule.description.trim() || null,
-        severity: newRule.severity,
-        priority: Number(newRule.priority) || 10,
-        logic_operator: newRule.logic_operator,
-        routing_queue: newRule.routing_queue,
-        dedup_window_minutes: Number(newRule.dedup_window_minutes) || 60,
+      const res = await safeCreateDetectionRule({
+        ...newRule,
         conditions: parsedConditions,
-        enabled: true,
-      };
+      });
 
-      const res = await safeCreateDetectionRule(payload);
       if (res && res.id) {
-        setActionMessage(`Rule "${res.name}" created successfully.`);
+        setActionMessage(`Detection Rule '${res.name}' created successfully.`);
         setShowCreateModal(false);
         setNewRule({
           name: "",
@@ -248,38 +233,38 @@ export function DetectionRulesManager() {
     <div className="space-y-6">
       {/* Action Notification */}
       {actionMessage && (
-        <div className="bg-cyan-950/90 border border-cyan-500/80 p-3 rounded-xl text-cyan-200 text-xs flex items-center justify-between shadow-lg">
+        <div className="bg-[#17181B] border border-[#19D5E5]/40 p-3 rounded-lg text-[#19D5E5] text-xs flex items-center justify-between shadow-lg">
           <span>{actionMessage}</span>
-          <button onClick={() => setActionMessage(null)} className="text-cyan-400 hover:text-white font-bold ml-4">
+          <button onClick={() => setActionMessage(null)} className="text-[#72747A] hover:text-white font-bold ml-4 cursor-pointer">
             ✕
           </button>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
               ⚙️ Configurable Detection Rules &amp; Alert Routing
-            </span>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">
+            </h2>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#17181B] text-[#19D5E5] border border-[#2B2C30]">
               FR-17 &amp; FR-18
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#A5A6AA] mt-1">
             Deterministic declarative condition evaluation engine with deduplication &amp; role-based queue routing.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {canTest && selectedRule && (
             <button
               onClick={() => {
                 setTestResult(null);
                 setShowTestModal(true);
               }}
-              className="bg-purple-900/60 hover:bg-purple-800 border border-purple-600 text-purple-200 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition"
+              className="bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#F2F2F0] font-bold px-3.5 py-2 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer"
             >
               <span>🧪</span>
               <span>Dry-Run Test Rule</span>
@@ -289,7 +274,7 @@ export function DetectionRulesManager() {
           {isAdminOrEng && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
+              className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
             >
               <span>+</span>
               <span>Create Rule</span>
@@ -303,15 +288,15 @@ export function DetectionRulesManager() {
         {Object.entries(ROUTING_DESTINATIONS).map(([key, dest]) => {
           const count = rules.filter((r) => r.routing_queue === key && r.enabled).length;
           return (
-            <div key={key} className="bg-[#0e1628] border border-slate-800/90 rounded-xl p-3 space-y-1">
-              <span className="text-[10px] font-mono uppercase text-slate-400 truncate block">
+            <div key={key} className="bg-[#111214] border border-[#2B2C30] rounded-lg p-3 space-y-1">
+              <span className="text-[10px] font-mono uppercase text-[#72747A] truncate block">
                 {dest.label}
               </span>
               <div className="flex items-baseline justify-between">
-                <span className="text-lg font-bold text-slate-100">{count}</span>
-                <span className="text-[10px] font-mono text-cyan-400">rules</span>
+                <span className="text-lg font-bold text-[#F2F2F0] font-mono">{count}</span>
+                <span className="text-[10px] font-mono text-[#19D5E5]">rules</span>
               </div>
-              <div className="text-[10px] text-slate-500 truncate" title={dest.owner}>
+              <div className="text-[10px] text-[#A5A6AA] truncate" title={dest.owner}>
                 {dest.owner}
               </div>
             </div>
@@ -322,32 +307,32 @@ export function DetectionRulesManager() {
       {/* Main Grid: Rules Table + Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Rules Table */}
-        <div className="lg:col-span-7 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+        <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
               <span>📋</span> Active Rules Inventory ({rules.length})
-            </h2>
+            </h3>
             <button
               onClick={loadRules}
-              className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1"
+              className="text-xs text-[#72747A] hover:text-[#F2F2F0] flex items-center gap-1 cursor-pointer font-mono"
             >
               <span>🔄</span> Refresh
             </button>
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-slate-500 text-xs font-mono animate-pulse">
+            <div className="py-16 text-center text-[#72747A] text-xs font-mono animate-pulse">
               Loading Detection Rules from Engine...
             </div>
           ) : rules.length === 0 ? (
-            <div className="py-16 text-center text-slate-500 text-xs font-mono">
+            <div className="py-16 text-center text-[#72747A] text-xs font-mono">
               No detection rules configured.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                  <tr className="border-b border-[#2B2C30] text-[#72747A] font-semibold uppercase text-[10px] font-mono">
                     <th className="pb-3">Status</th>
                     <th className="pb-3">Rule Name</th>
                     <th className="pb-3">Severity</th>
@@ -355,47 +340,47 @@ export function DetectionRulesManager() {
                     <th className="pb-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[#2B2C30]">
                   {rules.map((rule) => {
                     const isSelected = selectedRule?.id === rule.id;
                     return (
                       <tr
                         key={rule.id}
                         onClick={() => setSelectedRule(rule)}
-                        className={`cursor-pointer transition hover:bg-slate-800/40 ${
-                          isSelected ? "bg-cyan-950/30 border-l-2 border-cyan-400" : ""
+                        className={`cursor-pointer transition hover:bg-[#17181B] ${
+                          isSelected ? "bg-[#17181B] border-l-2 border-[#19D5E5]" : ""
                         }`}
                       >
                         <td className="py-3">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
                               rule.enabled
-                                ? "bg-emerald-950/80 text-emerald-400 border-emerald-800"
-                                : "bg-slate-900 text-slate-500 border-slate-800"
+                                ? "bg-[#111214] text-emerald-400 border-emerald-900/60"
+                                : "bg-[#111214] text-[#72747A] border-[#2B2C30]"
                             }`}
                           >
                             {rule.enabled ? "ACTIVE" : "DISABLED"}
                           </span>
                         </td>
-                        <td className="py-3 font-semibold text-slate-200 max-w-[200px] truncate">
+                        <td className="py-3 font-semibold text-[#F2F2F0] max-w-[200px] truncate">
                           {rule.name}
                         </td>
                         <td className="py-3">
                           <span
-                            className={`font-mono px-2 py-0.5 rounded text-[10px] font-bold ${
+                            className={`font-mono px-2 py-0.5 rounded text-[10px] font-bold border ${
                               rule.severity === "CRITICAL"
-                                ? "bg-rose-950/80 text-rose-400 border border-rose-800"
+                                ? "bg-[#17181B] text-red-400 border-red-900/60"
                                 : rule.severity === "HIGH"
-                                ? "bg-amber-950/80 text-amber-400 border border-amber-800"
+                                ? "bg-[#17181B] text-amber-400 border-amber-900/60"
                                 : rule.severity === "MEDIUM"
-                                ? "bg-yellow-950/80 text-yellow-400 border border-yellow-800"
-                                : "bg-slate-900 text-slate-400 border border-slate-800"
+                                ? "bg-[#17181B] text-yellow-400 border-yellow-900/60"
+                                : "bg-[#17181B] text-[#A5A6AA] border-[#2B2C30]"
                             }`}
                           >
                             {rule.severity}
                           </span>
                         </td>
-                        <td className="py-3 font-mono text-[11px] text-cyan-400">
+                        <td className="py-3 font-mono text-[11px] text-[#19D5E5]">
                           {rule.routing_queue}
                         </td>
                         <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -404,24 +389,24 @@ export function DetectionRulesManager() {
                               <>
                                 <button
                                   onClick={() => handleToggleEnable(rule)}
-                                  className={`px-2 py-1 rounded text-[10px] font-medium border ${
+                                  className={`px-2 py-1 rounded text-[10px] font-medium border cursor-pointer ${
                                     rule.enabled
-                                      ? "bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-700"
-                                      : "bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 border-emerald-700"
+                                      ? "bg-[#17181B] hover:bg-[#202125] text-[#A5A6AA] border-[#2B2C30]"
+                                      : "bg-[#17181B] hover:bg-[#202125] text-emerald-400 border-emerald-900/60"
                                   }`}
                                 >
                                   {rule.enabled ? "Disable" : "Enable"}
                                 </button>
                                 <button
                                   onClick={() => handleDeleteRule(rule.id)}
-                                  className="bg-rose-950/60 hover:bg-rose-900 text-rose-400 border border-rose-800 px-2 py-1 rounded text-[10px]"
+                                  className="bg-[#17181B] hover:bg-red-950 text-red-400 border border-red-900/60 px-2 py-1 rounded text-[10px] cursor-pointer"
                                 >
                                   Delete
                                 </button>
                               </>
                             )}
                             {isViewer && (
-                              <span className="text-[10px] text-slate-500 font-mono">Read-Only</span>
+                              <span className="text-[10px] text-[#72747A] font-mono">Read-Only</span>
                             )}
                           </div>
                         </td>
@@ -436,13 +421,13 @@ export function DetectionRulesManager() {
 
         {/* Right Column: Rule Inspector & Declarative Conditions */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
                 <span>🔍</span> Rule Inspection &amp; Logic
               </h3>
               {selectedRule && (
-                <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                <span className="text-[10px] font-mono text-[#A5A6AA] bg-[#090A0C] px-2 py-0.5 rounded border border-[#2B2C30]">
                   v{selectedRule.version}
                 </span>
               )}
@@ -450,13 +435,13 @@ export function DetectionRulesManager() {
 
             {selectedRule ? (
               <div className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-[#080d19] border border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-lg bg-[#090A0C] border border-[#2B2C30] space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-100">{selectedRule.name}</span>
-                    <span className="text-[10px] font-mono text-cyan-400">{selectedRule.id}</span>
+                    <span className="text-xs font-bold text-[#F2F2F0]">{selectedRule.name}</span>
+                    <span className="text-[10px] font-mono text-[#19D5E5]">{selectedRule.id}</span>
                   </div>
-                  <p className="text-xs text-slate-400">{selectedRule.description || "No description provided."}</p>
-                  <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-slate-500">
+                  <p className="text-xs text-[#A5A6AA]">{selectedRule.description || "No description provided."}</p>
+                  <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-[#72747A]">
                     <span>Priority: {selectedRule.priority}</span>
                     <span>&bull;</span>
                     <span>Dedup Window: {selectedRule.dedup_window_minutes}m</span>
@@ -466,28 +451,28 @@ export function DetectionRulesManager() {
                 </div>
 
                 {/* Routing Destination Block */}
-                <div className="p-3 rounded-xl bg-[#0e1628] border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500">Alert Routing Destination</span>
+                <div className="p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-[#72747A]">Alert Routing Destination</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-cyan-300">
+                    <span className="text-xs font-bold text-[#F2F2F0]">
                       {ROUTING_DESTINATIONS[selectedRule.routing_queue]?.label || selectedRule.routing_queue}
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#090A0C] text-[#19D5E5] border border-[#2B2C30]">
                       {selectedRule.routing_queue}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-400">
-                    Assigned Owner: <strong className="text-slate-200">{ROUTING_DESTINATIONS[selectedRule.routing_queue]?.owner}</strong>
+                  <div className="text-[11px] text-[#A5A6AA]">
+                    Assigned Owner: <strong className="text-[#F2F2F0]">{ROUTING_DESTINATIONS[selectedRule.routing_queue]?.owner}</strong>
                   </div>
                 </div>
 
                 {/* Declarative DSL Conditions */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-300">
-                      Conditions (Operator: <strong className="text-cyan-400">{selectedRule.logic_operator}</strong>)
+                    <span className="text-xs font-semibold text-[#A5A6AA]">
+                      Conditions (Operator: <strong className="text-[#19D5E5]">{selectedRule.logic_operator}</strong>)
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">
+                    <span className="text-[10px] font-mono text-[#72747A]">
                       {selectedRule.conditions.length} condition(s)
                     </span>
                   </div>
@@ -496,11 +481,11 @@ export function DetectionRulesManager() {
                     {selectedRule.conditions.map((cond, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-2 rounded-lg bg-[#0e1628] border border-slate-800/80 font-mono text-xs"
+                        className="flex items-center justify-between p-2 rounded bg-[#090A0C] border border-[#2B2C30] font-mono text-xs"
                       >
-                        <span className="text-cyan-400">{cond.field}</span>
-                        <span className="text-amber-400 font-bold">{cond.operator}</span>
-                        <span className="text-emerald-300 truncate max-w-[150px]">
+                        <span className="text-[#19D5E5]">{cond.field}</span>
+                        <span className="text-[#F2F2F0] font-bold">{cond.operator}</span>
+                        <span className="text-[#A5A6AA] truncate max-w-[150px]">
                           {typeof cond.value === "object" ? JSON.stringify(cond.value) : String(cond.value)}
                         </span>
                       </div>
@@ -514,7 +499,7 @@ export function DetectionRulesManager() {
                       setTestResult(null);
                       setShowTestModal(true);
                     }}
-                    className="w-full bg-purple-900/60 hover:bg-purple-800 text-purple-200 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-2 border border-purple-700/60"
+                    className="w-full bg-[#17181B] hover:bg-[#202125] text-[#F2F2F0] font-bold py-2 rounded-lg text-xs transition flex items-center justify-center gap-2 border border-[#2B2C30] cursor-pointer"
                   >
                     <span>🧪</span>
                     <span>Test Against Sample IOC</span>
@@ -522,7 +507,7 @@ export function DetectionRulesManager() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-500 text-xs">
+              <div className="text-center py-12 text-[#72747A] text-xs font-mono">
                 Select a rule from the table to inspect conditions and routing rules.
               </div>
             )}
@@ -533,14 +518,14 @@ export function DetectionRulesManager() {
       {/* Create Rule Modal */}
       {showCreateModal && isAdminOrEng && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-[#0b1220] border border-slate-700 rounded-2xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
+              <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2">
                 <span>➕</span> Create Configurable Detection Rule
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-white font-bold"
+                className="text-[#72747A] hover:text-[#F2F2F0] font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -548,34 +533,34 @@ export function DetectionRulesManager() {
 
             <form onSubmit={handleCreateRuleSubmit} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="text-slate-300 font-semibold">Rule Name *</label>
+                <label className="text-[#A5A6AA] font-semibold">Rule Name *</label>
                 <input
                   type="text"
                   required
                   value={newRule.name}
                   onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
                   placeholder="e.g. Critical C2 IP Pattern Match"
-                  className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-300 font-semibold">Description</label>
+                <label className="text-[#A5A6AA] font-semibold">Description</label>
                 <textarea
                   value={newRule.description}
                   onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
                   placeholder="Operational purpose and adversary context..."
-                  className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-cyan-500 h-16"
+                  className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0] focus:outline-none focus:border-[#19D5E5] h-16"
                 />
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Severity</label>
+                  <label className="text-[#A5A6AA] font-semibold">Severity</label>
                   <select
                     value={newRule.severity}
                     onChange={(e) => setNewRule({ ...newRule, severity: e.target.value as any })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   >
                     <option value="CRITICAL">CRITICAL</option>
                     <option value="HIGH">HIGH</option>
@@ -585,11 +570,11 @@ export function DetectionRulesManager() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Logic Operator</label>
+                  <label className="text-[#A5A6AA] font-semibold">Logic Operator</label>
                   <select
                     value={newRule.logic_operator}
                     onChange={(e) => setNewRule({ ...newRule, logic_operator: e.target.value as any })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   >
                     <option value="AND">AND (All match)</option>
                     <option value="OR">OR (Any match)</option>
@@ -597,11 +582,11 @@ export function DetectionRulesManager() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Routing Queue</label>
+                  <label className="text-[#A5A6AA] font-semibold">Routing Queue</label>
                   <select
                     value={newRule.routing_queue}
                     onChange={(e) => setNewRule({ ...newRule, routing_queue: e.target.value })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   >
                     <option value="SOC_TIER_1">SOC_TIER_1</option>
                     <option value="SOC_TIER_2">SOC_TIER_2</option>
@@ -613,26 +598,26 @@ export function DetectionRulesManager() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Dedup Window (min)</label>
+                  <label className="text-[#A5A6AA] font-semibold">Dedup Window (min)</label>
                   <input
                     type="number"
                     min={1}
                     max={1440}
                     value={newRule.dedup_window_minutes}
                     onChange={(e) => setNewRule({ ...newRule, dedup_window_minutes: Number(e.target.value) || 60 })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
               </div>
 
               {/* Conditions List */}
-              <div className="space-y-2 border-t border-slate-800 pt-3">
+              <div className="space-y-2 border-t border-[#2B2C30] pt-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-slate-300 font-semibold">Declarative Conditions</label>
+                  <label className="text-[#A5A6AA] font-semibold">Declarative Conditions</label>
                   <button
                     type="button"
                     onClick={handleAddCondition}
-                    className="text-cyan-400 hover:text-cyan-300 text-[11px] font-bold"
+                    className="text-[#19D5E5] hover:underline text-[11px] font-bold cursor-pointer font-mono"
                   >
                     + Add Condition
                   </button>
@@ -644,7 +629,7 @@ export function DetectionRulesManager() {
                       <select
                         value={cond.field}
                         onChange={(e) => handleConditionChange(idx, "field", e.target.value)}
-                        className="bg-[#0e1628] border border-slate-700 rounded-lg p-1.5 text-slate-200 flex-1"
+                        className="bg-[#090A0C] border border-[#2B2C30] rounded-lg p-1.5 text-[#F2F2F0] flex-1"
                       >
                         <option value="type">type</option>
                         <option value="value">value</option>
@@ -658,7 +643,7 @@ export function DetectionRulesManager() {
                       <select
                         value={cond.operator}
                         onChange={(e) => handleConditionChange(idx, "operator", e.target.value)}
-                        className="bg-[#0e1628] border border-slate-700 rounded-lg p-1.5 text-slate-200 w-24"
+                        className="bg-[#090A0C] border border-[#2B2C30] rounded-lg p-1.5 text-[#F2F2F0] w-24"
                       >
                         <option value="==">==</option>
                         <option value="!=">!=</option>
@@ -676,14 +661,14 @@ export function DetectionRulesManager() {
                         value={cond.value}
                         onChange={(e) => handleConditionChange(idx, "value", e.target.value)}
                         placeholder="Value..."
-                        className="bg-[#0e1628] border border-slate-700 rounded-lg p-1.5 text-slate-200 flex-1"
+                        className="bg-[#090A0C] border border-[#2B2C30] rounded-lg p-1.5 text-[#F2F2F0] flex-1"
                       />
 
                       {newRule.conditions.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveCondition(idx)}
-                          className="text-rose-400 hover:text-rose-300 px-2 py-1 font-bold"
+                          className="text-red-400 hover:text-red-300 px-2 py-1 font-bold cursor-pointer"
                         >
                           ✕
                         </button>
@@ -693,17 +678,17 @@ export function DetectionRulesManager() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2B2C30]">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl"
+                  className="bg-[#17181B] hover:bg-[#202125] text-[#A5A6AA] px-4 py-2 rounded-lg cursor-pointer border border-[#2B2C30]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded-xl shadow-sm"
+                  className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-bold px-5 py-2 rounded-lg shadow-sm cursor-pointer"
                 >
                   Save &amp; Activate Rule
                 </button>
@@ -716,90 +701,90 @@ export function DetectionRulesManager() {
       {/* Dry Run Test Modal */}
       {showTestModal && canTest && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-[#0b1220] border border-slate-700 rounded-2xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-6 max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#2B2C30] pb-3">
+              <h3 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2">
                 <span>🧪</span> Rule Dry-Run Testing (Side-Effect Free)
               </h3>
               <button
                 onClick={() => setShowTestModal(false)}
-                className="text-slate-400 hover:text-white font-bold"
+                className="text-[#72747A] hover:text-[#F2F2F0] font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#A5A6AA]">
               Evaluates real indicator telemetry against declarative rule conditions without creating alerts, publishing production events, or modifying database records.
             </p>
 
             <form onSubmit={handleRunTest} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Indicator Type</label>
+                  <label className="text-[#A5A6AA] font-semibold">Indicator Type</label>
                   <input
                     type="text"
                     value={testIndicator.type}
                     onChange={(e) => setTestIndicator({ ...testIndicator, type: e.target.value })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Indicator Value</label>
+                  <label className="text-[#A5A6AA] font-semibold">Indicator Value</label>
                   <input
                     type="text"
                     value={testIndicator.value}
                     onChange={(e) => setTestIndicator({ ...testIndicator, value: e.target.value })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Severity Score (0-100)</label>
+                  <label className="text-[#A5A6AA] font-semibold">Severity Score (0-100)</label>
                   <input
                     type="number"
                     value={testIndicator.severity_score}
                     onChange={(e) => setTestIndicator({ ...testIndicator, severity_score: Number(e.target.value) || 0 })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Threat Score (0-100)</label>
+                  <label className="text-[#A5A6AA] font-semibold">Threat Score (0-100)</label>
                   <input
                     type="number"
                     value={testIndicator.threat_score}
                     onChange={(e) => setTestIndicator({ ...testIndicator, threat_score: Number(e.target.value) || 0 })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Feed / Source</label>
+                  <label className="text-[#A5A6AA] font-semibold">Feed / Source</label>
                   <input
                     type="text"
                     value={testIndicator.source}
                     onChange={(e) => setTestIndicator({ ...testIndicator, source: e.target.value })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-300 font-semibold">Enrichment Verdict</label>
+                  <label className="text-[#A5A6AA] font-semibold">Enrichment Verdict</label>
                   <input
                     type="text"
                     value={testIndicator.verdict}
                     onChange={(e) => setTestIndicator({ ...testIndicator, verdict: e.target.value })}
-                    className="w-full bg-[#0e1628] border border-slate-700 rounded-lg p-2 text-slate-200"
+                    className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg p-2 text-[#F2F2F0]"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-xl shadow-sm transition"
+                className="w-full bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-bold py-2 rounded-lg shadow-sm transition cursor-pointer"
               >
                 Execute Dry-Run Evaluation
               </button>
@@ -807,41 +792,41 @@ export function DetectionRulesManager() {
 
             {/* Test Results Output */}
             {testResult && (
-              <div className="mt-4 p-4 rounded-xl bg-[#080d19] border border-slate-800 space-y-3 font-mono text-xs">
+              <div className="mt-4 p-4 rounded-lg bg-[#090A0C] border border-[#2B2C30] space-y-3 font-mono text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-semibold">Dry-Run Verdict:</span>
+                  <span className="text-[#A5A6AA] font-semibold">Dry-Run Verdict:</span>
                   <span
                     className={`px-2 py-0.5 rounded font-bold ${
                       testResult.matched
-                        ? "bg-rose-950 text-rose-400 border border-rose-800"
-                        : "bg-slate-900 text-slate-400 border border-slate-800"
+                        ? "bg-[#17181B] text-red-400 border border-red-900/60"
+                        : "bg-[#17181B] text-[#72747A] border border-[#2B2C30]"
                     }`}
                   >
                     {testResult.matched ? "RULE MATCHED (TRIGGERED)" : "NO MATCH"}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-400 space-y-1">
+                <div className="text-[11px] text-[#A5A6AA] space-y-1">
                   <div>
                     Evaluated Conditions:{" "}
-                    <strong className="text-slate-200">
+                    <strong className="text-[#F2F2F0]">
                       {testResult.matched_conditions_count || 0} / {testResult.total_conditions || 0} passed
                     </strong>
                   </div>
                   <div>
                     Target Routing Destination:{" "}
-                    <strong className="text-cyan-300">{testResult.routing_destination || "N/A"}</strong>
+                    <strong className="text-[#19D5E5]">{testResult.routing_destination || "N/A"}</strong>
                   </div>
                 </div>
 
                 {testResult.condition_details && (
-                  <div className="space-y-1 pt-2 border-t border-slate-800">
-                    <span className="text-[10px] uppercase text-slate-500">Condition Breakdown:</span>
+                  <div className="space-y-1 pt-2 border-t border-[#2B2C30]">
+                    <span className="text-[10px] uppercase text-[#72747A]">Condition Breakdown:</span>
                     {testResult.condition_details.map((c: any, i: number) => (
                       <div
                         key={i}
                         className={`flex items-center justify-between p-1.5 rounded text-[10px] ${
-                          c.matched ? "bg-emerald-950/40 text-emerald-300" : "bg-rose-950/40 text-rose-300"
+                          c.matched ? "bg-[#17181B] text-emerald-300 border border-emerald-900/40" : "bg-[#17181B] text-red-300 border border-red-900/40"
                         }`}
                       >
                         <span>
@@ -860,4 +845,5 @@ export function DetectionRulesManager() {
     </div>
   );
 }
+
 export default DetectionRulesManager;

@@ -15,7 +15,7 @@ import {
 import { HuntingGraph } from "@/components/HuntingGraph";
 
 function ThreatHuntingContent() {
-  const { persona, role } = useRole();
+  const { persona } = useRole();
   const searchParams = useSearchParams();
   const urlQuery = searchParams.get("q") || "";
 
@@ -149,7 +149,7 @@ function ThreatHuntingContent() {
       const res = await safeDeriveRelationships(activeIndicator?.id);
       if (res && res.data) {
         const count = res.data.derived_count ?? 0;
-        setDeriveFeedback(`Successfully discovered ${count} authentic evidence relationships.`);
+        setDeriveFeedback(`Discovered ${count} authentic evidence relationships.`);
         // Reload current graph
         if (activeIndicator) {
           loadIndicatorData(activeIndicator);
@@ -174,37 +174,37 @@ function ThreatHuntingContent() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              🎯 Advanced Threat Hunting &amp; Relationship Graph
-            </span>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-950/80 text-purple-400 border border-purple-800">
-              {persona.name} ({persona.title})
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#19D5E5]">
+              GRAPH RECONNAISSANCE // MULTI-HOP PIVOT
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            Adversary infrastructure graph traversal, bounded multi-hop pivoting, and authentic evidence telemetry.
+          <h1 className="text-xl md:text-2xl font-bold text-[#F2F2F0] tracking-tight">
+            Threat Hunting &amp; Relationship Graph
+          </h1>
+          <p className="text-xs text-[#A5A6AA] max-w-2xl">
+            Adversary infrastructure traversal, bounded multi-hop pivoting, and automated relationship telemetry.
           </p>
         </div>
 
         {/* Derive Relationships Button */}
         <div className="flex items-center gap-3">
           {deriveFeedback && (
-            <span className="text-[11px] font-mono text-cyan-400 animate-pulse bg-cyan-950/60 px-3 py-1 rounded-lg border border-cyan-800">
+            <span className="text-[11px] font-mono text-[#19D5E5] bg-[#17181B] px-3 py-1 rounded border border-[#2B2C30]">
               {deriveFeedback}
             </span>
           )}
           <button
             onClick={handleDerive}
             disabled={isDeriving}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-md shadow-purple-950/40 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#F2F2F0] hover:bg-white disabled:opacity-50 text-[#090A0C] text-xs font-bold transition cursor-pointer"
             title="Scan DNS resolutions, URL hosts, and incident co-occurrences for real links"
           >
             {isDeriving ? (
               <>
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-[#090A0C]/30 border-t-[#090A0C] rounded-full animate-spin" />
                 <span>Deriving Evidence...</span>
               </>
             ) : (
@@ -218,24 +218,24 @@ function ThreatHuntingContent() {
       </div>
 
       {/* Hunting Query Bar */}
-      <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-4 shadow-sm space-y-3">
         <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-sm">
-              🔍
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#72747A] text-xs font-mono">
+              HUNT:
             </span>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Hunt IOC value, IP, domain, URL, hash, or ATT&CK technique (e.g. 198.51.100.1, evil.com, T1071)..."
-              className="w-full bg-[#080d19] border border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
+              className="w-full bg-[#090A0C] border border-[#2B2C30] rounded-lg pl-16 pr-8 py-2 text-xs text-[#F2F2F0] placeholder-[#72747A] focus:outline-none focus:border-[#19D5E5] transition-all font-mono"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => { setQuery(""); setSearchResults([]); }}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-300 text-xs"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#72747A] hover:text-[#F2F2F0] text-xs"
               >
                 ✕
               </button>
@@ -243,8 +243,8 @@ function ThreatHuntingContent() {
           </div>
 
           {/* Depth Control */}
-          <div className="flex items-center gap-1.5 bg-[#080d19] border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-            <span className="text-slate-400 font-semibold text-[11px]">Hops:</span>
+          <div className="flex items-center gap-1.5 bg-[#090A0C] border border-[#2B2C30] px-3 py-1.5 rounded-lg text-xs">
+            <span className="text-[#A5A6AA] font-semibold text-[11px]">Hops:</span>
             {[1, 2, 3, 4].map((d) => (
               <button
                 key={d}
@@ -252,8 +252,8 @@ function ThreatHuntingContent() {
                 onClick={() => setMaxDepth(d)}
                 className={`px-2 py-0.5 rounded font-mono font-bold text-xs transition ${
                   maxDepth === d
-                    ? "bg-cyan-500 text-slate-950"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-[#19D5E5] text-[#090A0C]"
+                    : "text-[#72747A] hover:text-[#F2F2F0]"
                 }`}
               >
                 {d}
@@ -262,24 +262,24 @@ function ThreatHuntingContent() {
           </div>
 
           {/* Min Confidence Control */}
-          <div className="flex items-center gap-2 bg-[#080d19] border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-            <span className="text-slate-400 font-semibold text-[11px]">Min Conf:</span>
+          <div className="flex items-center gap-2 bg-[#090A0C] border border-[#2B2C30] px-3 py-1.5 rounded-lg text-xs">
+            <span className="text-[#A5A6AA] font-semibold text-[11px]">Min Conf:</span>
             <select
               value={minConfidence}
               onChange={(e) => setMinConfidence(Number(e.target.value))}
-              className="bg-transparent text-cyan-400 font-mono font-bold focus:outline-none cursor-pointer text-xs"
+              className="bg-transparent text-[#19D5E5] font-mono font-bold focus:outline-none cursor-pointer text-xs"
             >
-              <option value="0" className="bg-[#0b1220] text-slate-200">0% (All)</option>
-              <option value="50" className="bg-[#0b1220] text-slate-200">50%+</option>
-              <option value="75" className="bg-[#0b1220] text-slate-200">75%+</option>
-              <option value="90" className="bg-[#0b1220] text-slate-200">90%+</option>
+              <option value="0" className="bg-[#111214] text-[#F2F2F0]">0% (All)</option>
+              <option value="50" className="bg-[#111214] text-[#F2F2F0]">50%+</option>
+              <option value="75" className="bg-[#111214] text-[#F2F2F0]">75%+</option>
+              <option value="90" className="bg-[#111214] text-[#F2F2F0]">90%+</option>
             </select>
           </div>
 
           <button
             type="submit"
             disabled={searching}
-            className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap"
+            className="px-5 py-2 rounded-lg bg-[#17181B] border border-[#2B2C30] hover:border-[#19D5E5] disabled:opacity-50 text-[#F2F2F0] text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap"
           >
             {searching ? "Hunting..." : "Hunt Target"}
           </button>
@@ -287,9 +287,9 @@ function ThreatHuntingContent() {
 
         {/* Search Results Dropdown/Chips */}
         {searchResults.length > 0 && (
-          <div className="pt-2 border-t border-slate-800/80">
+          <div className="pt-2 border-t border-[#2B2C30]">
             <div className="flex items-center justify-between pb-1.5">
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-[#72747A]">
                 Found {searchResults.length} matching indicator targets:
               </span>
             </div>
@@ -300,18 +300,18 @@ function ThreatHuntingContent() {
                   <button
                     key={item.id}
                     onClick={() => setActiveIndicator(item)}
-                    className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono transition border ${
+                    className={`flex items-center gap-2 px-2.5 py-1 rounded text-xs font-mono transition border ${
                       isActive
-                        ? "bg-cyan-950/80 border-cyan-500 text-cyan-300 font-bold"
-                        : "bg-[#080d19] border-slate-800 text-slate-300 hover:border-slate-700"
+                        ? "bg-[#17181B] border-[#19D5E5] text-[#19D5E5] font-bold"
+                        : "bg-[#090A0C] border-[#2B2C30] text-[#A5A6AA] hover:border-[#72747A]"
                     }`}
                   >
                     <span>{item.value}</span>
-                    <span className="text-[10px] px-1 py-0.2 rounded bg-slate-800 text-slate-400">
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-[#17181B] text-[#72747A]">
                       {item.type}
                     </span>
                     {item.relationships_count > 0 && (
-                      <span className="text-[10px] px-1 py-0.2 rounded bg-purple-950 text-purple-400 border border-purple-800">
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-[#17181B] text-[#F2F2F0] border border-[#2B2C30]">
                         {item.relationships_count} rels
                       </span>
                     )}
@@ -328,13 +328,13 @@ function ThreatHuntingContent() {
         
         {/* Left 8 Cols: Graph Visualization + MITRE ATT&CK */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
                   <span>🕸️</span> Bounded Indicator Relationship Graph
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#A5A6AA]">
                   {activeIndicator
                     ? `Visualizing ${activeIndicator.type?.toUpperCase()} target: ${activeIndicator.value}`
                     : "Select or search an IOC to render relationship topology"}
@@ -343,7 +343,7 @@ function ThreatHuntingContent() {
 
               {activeIndicator && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#090A0C] border border-[#2B2C30] text-[#19D5E5]">
                     Focal: {activeIndicator.value?.length > 20 ? `${activeIndicator.value.slice(0, 18)}…` : activeIndicator.value}
                   </span>
                 </div>
@@ -362,27 +362,27 @@ function ThreatHuntingContent() {
           </div>
 
           {/* MITRE ATT&CK Heatmap (Preserved & Grounded) */}
-          <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
                   <span>🎯</span> MITRE ATT&amp;CK Technique Heatmap
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#A5A6AA]">
                   {hasMitreData
                     ? `Correlated technique density across ${mitreData.total_indicators_tagged} tagged indicators`
                     : "Live MITRE technique correlation"}
                 </p>
               </div>
-              <span className="text-[10px] font-mono bg-purple-950/80 text-purple-400 border border-purple-800 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono bg-[#17181B] text-[#A5A6AA] border border-[#2B2C30] px-2 py-0.5 rounded">
                 ATT&amp;CK Matrix
               </span>
             </div>
 
             {!hasMitreData || techniques.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500 font-mono bg-[#080d19] border border-slate-800 rounded-xl space-y-1">
+              <div className="p-6 text-center text-xs text-[#72747A] font-mono bg-[#090A0C] border border-[#2B2C30] rounded-lg space-y-1">
                 <p>⚠️ {mitreData?.message || "No MITRE ATT&CK techniques observed in ingested threat telemetry"}</p>
-                <p className="text-[10px] text-slate-600">Technique IDs are extracted during ingestion and enrichment.</p>
+                <p className="text-[10px] text-[#72747A]">Technique IDs are extracted during ingestion and enrichment.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -392,20 +392,20 @@ function ThreatHuntingContent() {
                     <div
                       key={tech.id}
                       onClick={() => setActiveTechnique(tech.id)}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                      className={`p-3.5 rounded-lg border cursor-pointer transition ${
                         isSelected
-                          ? "bg-purple-950/40 border-purple-500 shadow-md shadow-purple-950/50"
-                          : "bg-[#080d19] border-slate-800/80 hover:border-slate-700"
+                          ? "bg-[#17181B] border-[#19D5E5] shadow-sm"
+                          : "bg-[#090A0C] border-[#2B2C30] hover:border-[#72747A]"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-purple-400">{tech.id}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
+                        <span className="text-xs font-mono font-bold text-[#19D5E5]">{tech.id}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#17181B] text-[#F2F2F0] border border-[#2B2C30]">
                           {tech.count} IOCs
                         </span>
                       </div>
-                      <div className="text-xs font-bold text-slate-100 pt-1.5">{tech.name}</div>
-                      <div className="text-[10px] text-slate-400 pt-0.5">{tech.tactic}</div>
+                      <div className="text-xs font-bold text-[#F2F2F0] pt-1.5">{tech.name}</div>
+                      <div className="text-[10px] text-[#A5A6AA] pt-0.5">{tech.tactic}</div>
                     </div>
                   );
                 })}
@@ -414,12 +414,12 @@ function ThreatHuntingContent() {
 
             {activeTechnique && (
               <div className="pt-2">
-                <h3 className="text-xs font-bold text-slate-300 pb-2">
+                <h3 className="text-xs font-bold text-[#F2F2F0] pb-2 font-mono">
                   Target IOCs mapped to {activeTechnique} ({mappedIndicators.length} matching):
                 </h3>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                   {mappedIndicators.length === 0 ? (
-                    <div className="text-[11px] text-slate-500 font-mono p-2">
+                    <div className="text-[11px] text-[#72747A] font-mono p-2">
                       No active indicators currently match technique filter {activeTechnique}.
                     </div>
                   ) : (
@@ -427,10 +427,10 @@ function ThreatHuntingContent() {
                       <div
                         key={i}
                         onClick={() => { setActiveIndicator(ioc); setSelectedNode(ioc); }}
-                        className="flex items-center justify-between p-2 rounded-lg bg-[#080d19] border border-slate-800/60 text-xs font-mono cursor-pointer hover:border-cyan-500 transition"
+                        className="flex items-center justify-between p-2 rounded bg-[#090A0C] border border-[#2B2C30] text-xs font-mono cursor-pointer hover:border-[#19D5E5] transition"
                       >
-                        <span className="text-slate-200 truncate max-w-[280px]">{ioc.value}</span>
-                        <span className="text-cyan-400 font-bold">Investigate Graph →</span>
+                        <span className="text-[#F2F2F0] truncate max-w-[280px]">{ioc.value}</span>
+                        <span className="text-[#19D5E5] font-bold">Investigate Graph →</span>
                       </div>
                     ))
                   )}
@@ -443,15 +443,15 @@ function ThreatHuntingContent() {
         {/* Right 4 Cols: Selected Node Inspector & Telemetry */}
         <div className="lg:col-span-4 space-y-6">
           {/* Node Inspector Card */}
-          <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
                 <span>🔍</span> Target Node Inspector
               </h2>
               {selectedNode && (
                 <button
                   onClick={() => handlePivotNode(selectedNode)}
-                  className="px-2 py-0.5 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 text-[10px] font-mono font-bold rounded transition cursor-pointer"
+                  className="px-2.5 py-1 bg-[#17181B] hover:bg-[#202125] border border-[#2B2C30] text-[#19D5E5] text-[10px] font-mono font-bold rounded transition cursor-pointer"
                 >
                   Pivot as Root ⟳
                 </button>
@@ -461,37 +461,37 @@ function ThreatHuntingContent() {
             {selectedNode ? (
               <div className="space-y-4">
                 {/* Main Node Header */}
-                <div className="p-3.5 rounded-xl bg-[#080d19] border border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-lg bg-[#090A0C] border border-[#2B2C30] space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase font-bold text-cyan-400">
+                    <span className="text-[10px] font-mono uppercase font-bold text-[#19D5E5]">
                       {selectedNode.type}
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold border bg-slate-900 text-slate-200">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-[#2B2C30] bg-[#17181B] text-[#F2F2F0]">
                       {selectedNode.severity || "MEDIUM"}
                     </span>
                   </div>
-                  <p className="font-mono text-xs text-slate-100 font-bold break-all select-all">
+                  <p className="font-mono text-xs text-[#F2F2F0] font-bold break-all select-all">
                     {selectedNode.value}
                   </p>
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] font-mono border-t border-slate-800/80">
-                    <span className="text-slate-400">Threat Score: <strong className="text-slate-200">{selectedNode.threat_score ?? 0}/100</strong></span>
-                    <span className="text-slate-400">Status: <strong className="text-emerald-400">{selectedNode.status || "active"}</strong></span>
-                    <span className="text-slate-400">Sightings: <strong className="text-slate-200">{selectedNode.sightings ?? 1}</strong></span>
-                    <span className="text-slate-400">TLP: <strong className="text-amber-400 uppercase">{selectedNode.tlp || "amber"}</strong></span>
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] font-mono border-t border-[#2B2C30]">
+                    <span className="text-[#72747A]">Threat Score: <strong className="text-[#F2F2F0]">{selectedNode.threat_score ?? 0}/100</strong></span>
+                    <span className="text-[#72747A]">Status: <strong className="text-emerald-400">{selectedNode.status || "active"}</strong></span>
+                    <span className="text-[#72747A]">Sightings: <strong className="text-[#F2F2F0]">{selectedNode.sightings ?? 1}</strong></span>
+                    <span className="text-[#72747A]">TLP: <strong className="text-amber-400 uppercase">{selectedNode.tlp || "amber"}</strong></span>
                   </div>
                 </div>
 
                 {/* Direct Relationships List */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-slate-200">Connected Relationships</h3>
-                    <span className="text-[10px] font-mono text-purple-400">
+                    <h3 className="text-xs font-bold text-[#F2F2F0]">Connected Relationships</h3>
+                    <span className="text-[10px] font-mono text-[#19D5E5]">
                       {directRels?.total ?? 0} direct links
                     </span>
                   </div>
 
                   {!directRels || directRels.items?.length === 0 ? (
-                    <div className="p-3 rounded-xl bg-[#080d19] border border-slate-800 text-[11px] text-slate-500 font-mono text-center">
+                    <div className="p-3 rounded-lg bg-[#090A0C] border border-[#2B2C30] text-[11px] text-[#72747A] font-mono text-center">
                       No direct relationships recorded yet.
                     </div>
                   ) : (
@@ -503,21 +503,21 @@ function ThreatHuntingContent() {
                           <div
                             key={rel.id}
                             onClick={() => otherInd && handlePivotNode(otherInd)}
-                            className="p-2.5 rounded-xl bg-[#080d19] border border-slate-800/80 hover:border-purple-500/70 transition cursor-pointer text-xs space-y-1"
+                            className="p-2.5 rounded-lg bg-[#090A0C] border border-[#2B2C30] hover:border-[#19D5E5] transition cursor-pointer text-xs space-y-1"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-mono font-bold text-purple-400">
+                              <span className="text-[10px] font-mono font-bold text-[#19D5E5]">
                                 {isOutgoing ? "→" : "←"} {rel.relationship_type}
                               </span>
-                              <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded">
+                              <span className="text-[9px] font-mono text-[#72747A] bg-[#17181B] px-1.5 py-0.5 rounded border border-[#2B2C30]">
                                 Conf: {rel.confidence}%
                               </span>
                             </div>
-                            <p className="font-mono text-slate-200 truncate text-[11px]">
+                            <p className="font-mono text-[#F2F2F0] truncate text-[11px]">
                               {otherInd?.value || "Target Indicator"}
                             </p>
                             {rel.evidence && (
-                              <p className="text-[9.5px] text-slate-400 italic line-clamp-1">
+                              <p className="text-[9.5px] text-[#72747A] italic line-clamp-1">
                                 {rel.evidence}
                               </p>
                             )}
@@ -530,18 +530,18 @@ function ThreatHuntingContent() {
 
                 {/* Threat Intelligence Enrichment Summary */}
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-slate-200">Threat Intel Enrichment</h3>
+                  <h3 className="text-xs font-bold text-[#F2F2F0]">Threat Intel Enrichment</h3>
                   {enrichment && enrichment.length > 0 ? (
-                    <div className="p-3 rounded-xl bg-[#080d19] border border-slate-800 space-y-2 text-xs">
+                    <div className="p-3 rounded-lg bg-[#090A0C] border border-[#2B2C30] space-y-2 text-xs">
                       {enrichment.slice(0, 2).map((item: any, idx: number) => (
-                        <div key={idx} className="space-y-1 border-b border-slate-800/80 last:border-0 pb-1.5">
+                        <div key={idx} className="space-y-1 border-b border-[#2B2C30] last:border-0 pb-1.5">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-cyan-400">{item.provider}</span>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-950 text-red-300">
+                            <span className="font-bold text-[#F2F2F0]">{item.provider}</span>
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#17181B] text-red-300 border border-red-900/60">
                               {item.verdict?.toUpperCase() || "UNKNOWN"}
                             </span>
                           </div>
-                          <div className="text-[10px] font-mono text-slate-400 flex justify-between">
+                          <div className="text-[10px] font-mono text-[#72747A] flex justify-between">
                             <span>Malicious: {item.malicious_count || 0}</span>
                             <span>Reputation: {item.reputation ?? "N/A"}</span>
                           </div>
@@ -549,26 +549,26 @@ function ThreatHuntingContent() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-[#080d19] border border-slate-800 text-[11px] text-slate-500 font-mono text-center">
+                    <div className="p-3 rounded-lg bg-[#090A0C] border border-[#2B2C30] text-[11px] text-[#72747A] font-mono text-center">
                       No enrichment records available.
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="p-8 text-center text-xs text-slate-500 font-mono">
+              <div className="p-8 text-center text-xs text-[#72747A] font-mono">
                 Click any node in the graph to inspect its properties and connected edges.
               </div>
             )}
           </div>
 
           {/* Quick Hunting Query Library */}
-          <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+          <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
             <div>
-              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-[#F2F2F0] flex items-center gap-2 font-mono">
                 <span>⚡</span> Pre-Packaged Hunting Queries
               </h2>
-              <p className="text-xs text-slate-400">Adversary search presets</p>
+              <p className="text-xs text-[#72747A]">Adversary search presets</p>
             </div>
 
             <div className="space-y-2.5">
@@ -580,13 +580,13 @@ function ThreatHuntingContent() {
                 <div
                   key={idx}
                   onClick={() => { setQuery(preset.val); executeSearch(preset.val); }}
-                  className="p-3 rounded-xl bg-[#080d19] border border-slate-800/80 hover:border-cyan-500/70 cursor-pointer transition space-y-1"
+                  className="p-3 rounded-lg bg-[#090A0C] border border-[#2B2C30] hover:border-[#19D5E5] cursor-pointer transition space-y-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-200">{preset.label}</span>
-                    <span className="text-[9px] font-mono text-cyan-400">Run →</span>
+                    <span className="text-xs font-bold text-[#F2F2F0]">{preset.label}</span>
+                    <span className="text-[9px] font-mono text-[#19D5E5]">Run →</span>
                   </div>
-                  <div className="text-[10px] font-mono text-slate-500 bg-slate-900/80 px-2 py-0.5 rounded">
+                  <div className="text-[10px] font-mono text-[#72747A] bg-[#17181B] px-2 py-0.5 rounded border border-[#2B2C30]">
                     {preset.q}
                   </div>
                 </div>
@@ -604,7 +604,7 @@ export default function ThreatHuntingPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full h-96 flex items-center justify-center text-xs text-slate-500 font-mono">
+        <div className="w-full h-96 flex items-center justify-center text-xs text-[#72747A] font-mono">
           Loading Threat Hunting Workspace...
         </div>
       }

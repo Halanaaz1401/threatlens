@@ -1,46 +1,116 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
+  /* THEME TOKENS — MATCHING REFERENCE DESIGN DIRECTION */
+  --bg-primary: #090A0C;
+  --bg-secondary: #111214;
+  --bg-elevated: #17181B;
+  --bg-card: #131417;
+
+  --text-primary: #F2F2F0;
+  --text-secondary: #A5A6AA;
+  --text-muted: #72747A;
+
+  --border-subtle: #202125;
+  --border-primary: #2B2C30;
+  --border-highlight: #42434A;
+
+  --accent-cyan: #19D5E5;
+  --accent-cyan-glow: rgba(25, 213, 229, 0.15);
+
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-critical: #ef4444;
+  --status-info: #64748b;
 }
 
 html {
   overflow-x: hidden;
   scroll-behavior: smooth;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar for SOC dashboards */
+/* TYPOGRAPHY UTILITIES */
+.font-editorial-serif {
+  font-family: "Newsreader", "Playfair Display", "Didot", "Bodoni MT", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: -0.015em;
+}
+
+.font-editorial-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.font-mono-tech {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+/* DIAGONAL HATCH PATTERNS (FROM REFERENCE SCREENSHOTS) */
+.hatch-pattern {
+  background-color: #090A0C;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.035),
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+.hatch-strip {
+  background-color: #0d0e11;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(43, 44, 48, 0.75),
+    rgba(43, 44, 48, 0.75) 1.5px,
+    transparent 1.5px,
+    transparent 5px
+  );
+}
+
+.tech-grid {
+  background-size: 28px 28px;
+  background-image: linear-gradient(to right, rgba(43, 44, 48, 0.25) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(43, 44, 48, 0.25) 1px, transparent 1px);
+}
+
+/* CUSTOM HIGH-PRECISION SCROLLBAR */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d1322;
+  background: #090A0C;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #2B2C30;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #42434A;
 }
 
-/* Focus visibility for accessibility */
+/* ACCESSIBILITY FOCUS */
 *:focus-visible {
-  outline: 2px solid #06b6d4;
+  outline: 2px solid #19D5E5;
   outline-offset: 2px;
 }
 
-/* Keyframe animations */
+/* KEYFRAME ANIMATIONS */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -56,7 +126,7 @@ body {
   animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Reduced motion preference */
+/* PREFERS-REDUCED-MOTION */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

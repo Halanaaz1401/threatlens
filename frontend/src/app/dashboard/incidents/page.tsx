@@ -5,7 +5,6 @@ import { useRole } from "@/context/RoleContext";
 import { safeFetchIndicators, safeFetchIncidents, safeFetchIncidentTimeline, getApiBaseUrl } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth";
 
-
 export default function IncidentResponsePage() {
   const { persona } = useRole();
   const [indicators, setIndicators] = useState<any[]>([]);
@@ -20,16 +19,16 @@ export default function IncidentResponsePage() {
       setLoading(true);
       const [iocs, incList] = await Promise.all([
         safeFetchIndicators(),
-        safeFetchIncidents()
+        safeFetchIncidents(),
       ]);
-      setIndicators(iocs);
-      setIncidents(incList);
+      setIndicators(iocs || []);
+      setIncidents(incList || []);
 
       if (incList && incList.length > 0) {
         const topInc = incList[0];
         setActiveIncident(topInc);
         const tl = await safeFetchIncidentTimeline(topInc.id);
-        setTimeline(tl);
+        setTimeline(tl || []);
       }
       setLoading(false);
     }
@@ -39,11 +38,9 @@ export default function IncidentResponsePage() {
   const handleGenerateReport = async () => {
     const incCode = activeIncident?.incident_code || "INC-2026-0815";
     try {
-      let res = null;
       const headers = { ...getAuthHeaders() };
       const baseUrl = getApiBaseUrl();
-      res = await fetch(`${baseUrl}/api/v1/export/stix`, { headers });
-
+      const res = await fetch(`${baseUrl}/api/v1/export/stix`, { headers });
 
       if (res && res.ok) {
         const stixData = await res.json();
@@ -81,78 +78,77 @@ export default function IncidentResponsePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="bg-[#0b1220] border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Incident Summary Bar */}
+      <div className="bg-[#111214] border border-[#2B2C30] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              ⚠️ Incident Workspace: {incCode}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-lg font-bold text-[#F2F2F0] font-editorial-sans">
+              Incident Workspace: {incCode}
             </span>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-orange-950/80 text-orange-400 border border-orange-800">
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#17181B] text-[#A5A6AA] border border-[#2B2C30]">
               {persona.name} ({persona.title})
             </span>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-              incSeverity === "CRITICAL" ? "bg-red-950 text-red-400 border-red-800" : "bg-amber-950 text-amber-400 border-amber-800"
-            }`}>
-              {incSeverity} · {incStatus}
+            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#17181B] border border-[#2B2C30] text-[#19D5E5]">
+              {incSeverity} &bull; {incStatus}
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            {incTitle} · Correlated from {alertCount} active alerts with threat telemetry.
+          <p className="text-xs text-[#72747A] font-mono">
+            {incTitle} &bull; Correlated from {alertCount} active alerts with threat telemetry.
           </p>
         </div>
 
         <button
           onClick={handleGenerateReport}
-          className="bg-orange-600 hover:bg-orange-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition"
+          className="bg-[#F2F2F0] hover:bg-white text-[#090A0C] font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-2 shadow-sm transition"
         >
-          <span>📦</span>
           <span>{reportGenerated ? "STIX 2.1 Exported!" : "Export STIX 2.1 Dossier"}</span>
+          <span className="font-mono text-sm">&rarr;</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Forensic Timeline */}
-        <div className="lg:col-span-7 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <span>⏱️</span> Chronological Forensic Timeline
+        <div className="lg:col-span-7 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
+          <h2 className="text-xs font-mono uppercase tracking-wider text-[#A5A6AA] flex items-center gap-2">
+            <span>Chronological Forensic Timeline</span>
           </h2>
           <div className="space-y-3">
             {timeline && timeline.length > 0 ? (
               timeline.map((entry, idx) => (
                 <div
                   key={entry.id || idx}
-                  className={`p-3 rounded-xl bg-[#080d19] border-l-4 ${
-                    entry.action?.includes("ESCALATED") || entry.action?.includes("CRITICAL")
-                      ? "border-l-red-500"
-                      : "border-l-orange-500"
-                  } border border-slate-800/80 space-y-1`}
+                  className="p-3.5 rounded-lg bg-[#17181B] border border-[#2B2C30] space-y-1"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">{entry.action}</span>
-                    <span className="font-mono text-[10px] text-slate-400">
+                    <span className="font-semibold text-[#F2F2F0] font-mono">{entry.action}</span>
+                    <span className="font-mono text-[10px] text-[#72747A]">
                       {entry.created_at ? new Date(entry.created_at).toLocaleTimeString() : "Recent"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300">{entry.details || "Automated telemetry event recorded."}</p>
-                  <div className="text-[10px] text-slate-400">Actor: {entry.actor}</div>
+                  <p className="text-xs text-[#A5A6AA] leading-relaxed">{entry.details || "Automated telemetry event recorded."}</p>
+                  <div className="text-[10px] text-[#72747A] font-mono">Actor: {entry.actor}</div>
                 </div>
               ))
             ) : (
               <>
-                <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-red-500 border border-slate-800/80 space-y-1">
+                <div className="p-3.5 rounded-lg bg-[#17181B] border border-[#2B2C30] space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-red-400">High-Severity C2 Beacon Detected</span>
-                    <span className="font-mono text-[10px] text-slate-400">18:42:10 UTC</span>
+                    <span className="font-semibold text-red-400 font-mono">High-Severity C2 Beacon Detected</span>
+                    <span className="font-mono text-[10px] text-[#72747A]">18:42:10 UTC</span>
                   </div>
-                  <p className="text-xs text-slate-300">Internal endpoint established communication with malicious IOC <code>{primaryIoc}</code>.</p>
+                  <p className="text-xs text-[#A5A6AA]">
+                    Internal endpoint established communication with malicious IOC <code className="text-[#19D5E5]">{primaryIoc}</code>.
+                  </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-[#080d19] border-l-4 border-l-orange-500 border border-slate-800/80 space-y-1">
+                <div className="p-3.5 rounded-lg bg-[#17181B] border border-[#2B2C30] space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-orange-400">Automated Scoring &amp; Incident Correlation</span>
-                    <span className="font-mono text-[10px] text-slate-400">18:42:15 UTC</span>
+                    <span className="font-semibold text-[#19D5E5] font-mono">Automated Scoring &amp; Incident Correlation</span>
+                    <span className="font-mono text-[10px] text-[#72747A]">18:42:15 UTC</span>
                   </div>
-                  <p className="text-xs text-slate-300">ThreatLens correlation engine created incident cluster for {primaryIoc}.</p>
+                  <p className="text-xs text-[#A5A6AA]">
+                    ThreatLens correlation engine created incident cluster for {primaryIoc}.
+                  </p>
                 </div>
               </>
             )}
@@ -160,26 +156,26 @@ export default function IncidentResponsePage() {
         </div>
 
         {/* Right Column: Containment Checklist */}
-        <div className="lg:col-span-5 bg-[#0b1220] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <span>🛡️</span> Containment Checklist
+        <div className="lg:col-span-5 bg-[#111214] border border-[#2B2C30] rounded-xl p-5 space-y-4 shadow-sm">
+          <h2 className="text-xs font-mono uppercase tracking-wider text-[#A5A6AA] flex items-center gap-2">
+            <span>Containment Checklist</span>
           </h2>
-          <div className="space-y-2.5 text-xs">
-            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
-              <input type="checkbox" defaultChecked className="rounded accent-orange-500" />
-              <span className="text-slate-200">Isolate affected internal host at EDR layer</span>
+          <div className="space-y-2.5 text-xs font-mono">
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] cursor-pointer hover:border-[#3F4046] transition">
+              <input type="checkbox" defaultChecked className="rounded accent-[#19D5E5]" />
+              <span className="text-[#F2F2F0]">Isolate affected internal host at EDR layer</span>
             </label>
-            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
-              <input type="checkbox" defaultChecked className="rounded accent-orange-500" />
-              <span className="text-slate-200">Push edge firewall block for <code>{primaryIoc}</code></span>
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] cursor-pointer hover:border-[#3F4046] transition">
+              <input type="checkbox" defaultChecked className="rounded accent-[#19D5E5]" />
+              <span className="text-[#F2F2F0]">Push edge firewall block for <code className="text-[#19D5E5]">{primaryIoc}</code></span>
             </label>
-            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
-              <input type="checkbox" className="rounded accent-orange-500" />
-              <span className="text-slate-200">Revoke associated session tokens and credentials</span>
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] cursor-pointer hover:border-[#3F4046] transition">
+              <input type="checkbox" className="rounded accent-[#19D5E5]" />
+              <span className="text-[#A5A6AA]">Revoke associated session tokens and credentials</span>
             </label>
-            <label className="flex items-center gap-3 p-2.5 rounded-lg bg-[#080d19] border border-slate-800/80 cursor-pointer">
-              <input type="checkbox" className="rounded accent-orange-500" />
-              <span className="text-slate-200">Trigger SIEM correlation rule backtrace (last 48h)</span>
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-[#17181B] border border-[#2B2C30] cursor-pointer hover:border-[#3F4046] transition">
+              <input type="checkbox" className="rounded accent-[#19D5E5]" />
+              <span className="text-[#A5A6AA]">Trigger SIEM correlation rule backtrace (last 48h)</span>
             </label>
           </div>
         </div>
