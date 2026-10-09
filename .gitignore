@@ -17,6 +17,11 @@ __pycache__/
 # Testing & Coverage
 coverage/
 .nyc_output/
+.coverage
+htmlcov/
+playwright-report/
+test-results/
+*.tsbuildinfo
 
 # Next.js Build Output
 .next/
